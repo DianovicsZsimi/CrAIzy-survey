@@ -145,7 +145,7 @@ ${l://OptOutLink?d=Click here to unsubscribe}
 
 <!-- ```{r supplementary-table-1} -->
 <!-- knitr::kable( -->
-<!--   read.csv("cleaning_summary.csv", check.names = FALSE, fileEncoding = "UTF-8"), -->
+<!--   read.csv("tables/cleaning_summary.csv", check.names = FALSE, fileEncoding = "UTF-8"), -->
 <!--   caption = "Table S1. Participant exclusions" -->
 <!-- ) -->
 <!-- ``` -->
@@ -157,7 +157,7 @@ ${l://OptOutLink?d=Click here to unsubscribe}
 
 <!-- ```{r supplementary-table-2} -->
 <!-- knitr::kable( -->
-<!--   read.csv("participant_summary.csv", check.names = FALSE, fileEncoding = "UTF-8"), -->
+<!--   read.csv("tables/participant_summary.csv", check.names = FALSE, fileEncoding = "UTF-8"), -->
 <!--   caption = "Table S2. Participant characteristics" -->
 <!-- ) -->
 <!-- ``` -->
@@ -169,7 +169,7 @@ ${l://OptOutLink?d=Click here to unsubscribe}
 
 <!-- ```{r supplementary-table-3} -->
 <!-- knitr::kable( -->
-<!--   read.csv("ai_background_summary.csv", check.names = FALSE, fileEncoding = "UTF-8"), -->
+<!--   read.csv("tables/ai_background_summary.csv", check.names = FALSE, fileEncoding = "UTF-8"), -->
 <!--   caption = "Table S3. Awareness and AI use" -->
 <!-- ) -->
 <!-- ``` -->
@@ -181,7 +181,7 @@ ${l://OptOutLink?d=Click here to unsubscribe}
 
 ```{r supplementary-table-1}
 knitr::kable(
-  read.csv("country_check.csv", check.names = FALSE, fileEncoding = "UTF-8", row.names = 1),
+  read.csv("tables/country_check.csv", check.names = FALSE, fileEncoding = "UTF-8", row.names = 1),
   caption = "Table S1. Country classifications"
 )
 ```

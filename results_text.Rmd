@@ -7,7 +7,7 @@ library(tidyverse)
 ```{r}
 # Render data_wrangling.Rmd before running this document.
 data_filtered = read.csv("data_clean.csv", check.names = FALSE, na.strings = "", fileEncoding = "UTF-8")
-filter_counts = read.csv("cleaning_summary.csv")
+filter_counts = read.csv("tables/cleaning_summary.csv")
 ```
 
 # Response order

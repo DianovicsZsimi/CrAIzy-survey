@@ -197,7 +197,7 @@ participant_summary = rbind(
                labels = replace(summary_disciplines, 5, "Social Sciences"))
 )
 rownames(participant_summary) = NULL
-write.csv(participant_summary, "participant_summary.csv", row.names = FALSE, na = "", fileEncoding = "UTF-8")
+write.csv(participant_summary, "tables/participant_summary.csv", row.names = FALSE, na = "", fileEncoding = "UTF-8")
 
 
 # ai-background-summary
@@ -206,7 +206,7 @@ ai_background_summary = rbind(
   summary_rows("ai_use", "AI use", response_orders$ai_use)
 )
 rownames(ai_background_summary) = NULL
-write.csv(ai_background_summary, "ai_background_summary.csv", row.names = FALSE, na = "", fileEncoding = "UTF-8")
+write.csv(ai_background_summary, "tables/ai_background_summary.csv", row.names = FALSE, na = "", fileEncoding = "UTF-8")
 
 
 # ai-roles preparation

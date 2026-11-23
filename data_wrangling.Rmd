@@ -179,10 +179,10 @@ data_anonymous = data_clean |>
 
 ```{r save-data}
 write.csv(data_clean, "data_clean.csv", row.names = FALSE, na = "", fileEncoding = "UTF-8")
-write.csv(filter_counts, "cleaning_summary.csv", row.names = FALSE)
+write.csv(filter_counts, "tables/cleaning_summary.csv", row.names = FALSE)
 country_check = data_clean |>
   distinct(country, country_iso3, continent) |>
   arrange(country)
-write.csv(country_check, "country_check.csv")
-write.csv(data_anonymous, "data_anonymous.csv", row.names = FALSE, na = "", fileEncoding = "UTF-8")
+write.csv(country_check, "tables/country_check.csv")
+write.csv(data_anonymous, "data/data_anonymous.csv", row.names = FALSE, na = "", fileEncoding = "UTF-8")
 ```
