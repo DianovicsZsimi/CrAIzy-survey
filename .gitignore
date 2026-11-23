@@ -51,3 +51,25 @@ rsconnect/
 
 # Project-local R packages
 .r_library/
+
+# Nature figures
+/plots_png/nature/
+/data_analysis_nature.Rmd
+/nature_presentation.Rmd
+/nature_presentation.html
+/nature_presentation_continuous.pdf
+
+# PDF rendering
+/render_presentation_pdf.ps1
+
+# Unfiltered data
+/data_clean.csv
+
+# Code testing
+/test.R
+
+# Temp folder
+/tmp/
+
+# Remove duplicate renders
+/Supplementary Information.pdf
