@@ -1,4 +1,5 @@
-Data wrangling, analysis, and visualisation code for the 'Who Will Conduct Science? A Cross-Disciplinary Survey on Researchers’ Views on AI Autonomy' project
+Data wrangling, analysis, and visualisation code for the 'Who Will Conduct Science? Who Will Conduct Science? Researchers’ Expectations of AI Capabilities and the Future of Scientific Work
+' project
 
 Repo structure:
 - Data - contains data file that is anonymised and processed
