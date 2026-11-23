@@ -1,0 +1,9 @@
+﻿Construct,Item wording,Response options
+Consent,"I confirm that I am at least 18 years old, I have received detailed information about the circumstances of my participation, I agree with the conditions, and I agree to take part.",Yes; No (ended the survey)
+Primary discipline,Select your primary research discipline.,"Two-level dropdown: 6 fields (natural sciences; engineering and technology; medical, health and life sciences; agricultural and veterinary sciences; social sciences; humanities and the arts) and 43 subfields, based on the OECD Fields of Research and Development classification [CITE: OECD Frascati Manual 2015; confirm]. One primary discipline per respondent; no multidisciplinary option; optional ([n] missing)"
+Career stage,Select your career stage.,PhD student; postdoctoral researcher; assistant professor; associate professor; full professor; currently not conducting research within an academic setting; other (text)
+Country,Select the country of your primary affiliation.,Dropdown of 193 countries
+Long-term strategy,How should you strategise about your work for the long term in light of recent AI developments?,"I have no idea; yes (please describe how), with text entry; I do not want to answer"
+Community adaptation,"How, if at all, should the scientific community adapt in light of recent AI developments?",Free text
+Data quality,"Please think about your participation in this survey (e.g., whether you answered carefully). Based on your own judgment, should we include your responses in the analyses?",Yes; No
+Final comments,Do you have any other comments or thoughts you would like to share with us?,Free text

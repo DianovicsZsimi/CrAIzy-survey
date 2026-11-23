@@ -1,6 +1,7 @@
 ---
-title: "Supplementary Information"
-author: "Balazs Aczel, Dominik Dianovics, Barnabas Szaszi, Peter Szecsi"
+title: "Supplementary Information: Who Will Conduct Science? 
+Researchers’ Expectations of AI Capabilities and the Future of Scientific Work"
+author: "Balazs Aczel, Dominik Dianovics, Peter Szecsi, Barnabas Szaszi"
 output:
   html_document:
     toc: true
@@ -187,6 +188,17 @@ knitr::kable(
 ```
 
 *Note.* Country labels, ISO3 codes, and continent assignments used in the analysis.
+
+## Variables
+
+```{r supplementary-table-2}
+knitr::kable(
+  read.csv("tables/variables.csv", check.names = FALSE, fileEncoding = "UTF-8", row.names = 1),
+  caption = "Table S2. Variables"
+)
+```
+
+*Note.* Variables related to AI can be found in the manuscript.
 
 
 # Plots
