@@ -1,0 +1,188 @@
+---
+title: "Data wrangling"
+output: html_document
+---
+
+Run this document first, then render `results_text.Rmd` and `data_analysis.Rmd`.
+It writes the shared clean dataset and cleaning summary beside these documents.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+library(tidyverse)
+library(countrycode)
+```
+
+# Import survey responses
+
+```{r import}
+data <- read.csv("../survey_11_21.csv", check.names = FALSE)
+data_in_progress  = read.csv("../survey_11_21_in_progress.csv", check.names = FALSE)
+
+data = bind_rows(data, data_in_progress)
+
+data = data |> 
+  select(-c(StartDate:Status), -c(RecordedDate:'Last Seen Question IDs'))
+
+data = data[3:nrow(data), ]
+
+```
+
+# Participant exclusions
+
+```{r participant-exclusions}
+data_n = nrow(data)
+
+data_filter_consent = data |>
+  filter(consent == "Yes")
+
+data_filter_consent_n = data_n - nrow(data_filter_consent)
+
+data_filter_quality = data_filter_consent |>
+  filter(data_quality != "No")
+
+data_filter_quality_n = nrow(data_filter_consent) - nrow(data_filter_quality)
+
+data_filter_duration = data_filter_quality |>
+  filter(as.numeric(`Duration (in seconds)`) >= 60)
+
+data_filter_duration_n = nrow(data_filter_quality) - nrow(data_filter_duration)
+
+data_filter_non_academic = data_filter_duration |>
+  filter(stage != "Currently not conducting research within an academic setting")
+
+data_filter_non_academic_n = nrow(data_filter_duration) - nrow(data_filter_non_academic)
+
+data_filtered = data_filter_non_academic
+
+data_filtered = data_filtered |> mutate(respondent = row_number())
+data_filtered_n = nrow(data_filtered)
+data_excluded_n = data_n - data_filtered_n
+filter_counts = data.frame(
+  Step = c("Survey responses", "Consent", "Data quality", "Duration (at least 60 seconds)", "Non-academic"),
+  Excluded = c(0, data_filter_consent_n, data_filter_quality_n, data_filter_duration_n, data_filter_non_academic_n),
+  Remaining = c(data_n, nrow(data_filter_consent), nrow(data_filter_quality), nrow(data_filter_duration), data_filtered_n)
+)
+knitr::kable(filter_counts)
+```
+
+# Prepare analysis variables
+
+```{r prepare-variables}
+data_filtered = data_filtered |>
+  mutate(
+    discipline_of_interest = case_when(
+      discipline_1 == "Natural sciences" & discipline_2 == "Other natural sciences" ~ NA_character_,
+      discipline_1 == "Natural sciences" ~ discipline_2,
+      TRUE ~ discipline_1
+    )
+  )
+
+
+data_filtered = data_filtered |>
+  mutate(
+    country_iso3 = countrycode(
+      country,
+      origin = "country.name",
+      destination = "iso3c"
+    ),
+    continent = countrycode(
+      country_iso3,
+      origin = "iso3c",
+      destination = "continent"
+    )
+  )
+
+
+data_filtered = data_filtered |>
+  rename(
+    role_ra = ai_roles_1,
+    role_ir = ai_roles_2,
+    role_pr = ai_roles_3,
+    role_je = ai_roles_4,
+    role_gr = ai_roles_5,
+    role_dm = ai_roles_6
+  )
+
+eu_uk_iso3 = c("AUT", "BEL", "BGR", "HRV", "CYP", "CZE", "DNK", "EST",
+                "FIN", "FRA", "DEU", "GRC", "HUN", "IRL", "ITA", "LVA",
+                "LTU", "LUX", "MLT", "NLD", "POL", "PRT", "ROU", "SVK",
+                "SVN", "ESP", "SWE", "GBR")
+data_filtered = data_filtered |>
+  mutate(country_group = case_when(
+    is.na(country_iso3) ~ NA_character_,
+    country_iso3 == "USA" ~ "USA",
+    country_iso3 %in% eu_uk_iso3 ~ "EU + UK",
+    country_iso3 == "CHN" ~ "China",
+    country_iso3 == "IND" ~ "India",
+    TRUE ~ "Other countries"
+  ))
+
+data_filtered = data_filtered |>
+  mutate(awareness_dichotomized = case_when(
+    awareness %in% c("Not aware", "Heard about them, but know little") ~
+      "Not familiar",
+    awareness %in% c("Somewhat familiar", "Very familiar") ~
+      "Familiar",
+    TRUE ~ NA_character_
+  ))
+
+```
+
+# Conflicting change selections
+
+Invalidate the change answer when "do not intend to reconsider" is selected with
+reconsidering research topics, reconsidering an academic career, or sacrificing
+less of one's life to science. Also invalidate "prefer not to answer" together
+with any other selection. Retain these participants for all other questions.
+
+```{r clean-change}
+change_respondents = data_filtered |>
+  select(respondent, stage, change) |>
+  filter(!is.na(change), nzchar(trimws(change)))
+
+change_long = change_respondents |>
+  select(respondent, change) |>
+  separate_longer_delim(change, delim = ",") |>
+  mutate(change = trimws(change)) |>
+  filter(nzchar(change)) |>
+  distinct(respondent, change)
+
+# Remove conflicting selections from this question only.
+change_invalid = change_long |>
+  group_by(respondent) |>
+  summarise(
+    invalid = (
+      "I do not intend to reconsider my research or career." %in% change &
+      any(change %in% c("I am reconsidering research topics.",
+                        "I am reconsidering my academic career.",
+                        "I am considering sacrificing less of my life to science."))
+    ) | ("I prefer not to answer." %in% change & n() > 1),
+    .groups = "drop"
+  ) |>
+  filter(invalid)
+
+change_excluded_n = nrow(change_invalid)
+data_clean = data_filtered |>
+  mutate(change_invalid = respondent %in% change_invalid$respondent,
+         change = replace(change, change_invalid, NA_character_))
+```
+
+# Remove open-ended responses for anonymity
+
+```{r}
+data_anonymous = data_clean |>
+  select(-c(contains("TEXT"), comment, consensus))
+```
+
+
+# Save the clean dataset
+
+```{r save-data}
+write.csv(data_clean, "data_clean.csv", row.names = FALSE, na = "", fileEncoding = "UTF-8")
+write.csv(filter_counts, "cleaning_summary.csv", row.names = FALSE)
+country_check = data_clean |>
+  distinct(country, country_iso3, continent) |>
+  arrange(country)
+write.csv(country_check, "country_check.csv")
+write.csv(data_anonymous, "data_anonymous.csv", row.names = FALSE, na = "", fileEncoding = "UTF-8")
+```

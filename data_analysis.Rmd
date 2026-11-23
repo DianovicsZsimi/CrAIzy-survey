@@ -1,5 +1,5 @@
 ---
-title: "data_analysis"
+title: "Data analysis — Academic"
 author: "Dominik Dianovics"
 date: "2026-11-11"
 output: html_document
@@ -8,773 +8,173 @@ output: html_document
 # Load libraries and data
 
 ```{r setup, include=FALSE}
-library(tidyverse)
-library(ggplot2)
-library(scales)
-library(countrycode)
-library(rnaturalearth)
-library(sf)
-# Default image dimensions in inches and raster resolution.
-knitr::opts_chunk$set(fig.width = 9, fig.height = 5, dpi = 144,
-                      fig.align = "center")
-
-
-data = read_csv("survey_11_11.csv")
-
-data = data |> 
-  select(-c(StartDate:Status), -c(RecordedDate:'Last Seen Question IDs'))
-
-data = data[3:nrow(data), ]
-
+source("visualisation_helper.R", local = knitr::knit_global())
+configure_visualisation()
 ```
 
-# Question subtitles
 
+# Participant summary
 
-```{r question-subtitles}
-question_subtitles = c(
-  discipline_of_interest = "",
-  stage = "",
-  ai_use = "How much do you currently use AI?",
-  awareness = "Before reading the introduction above, how familiar were you with the recent reports of AI-generated mathematics research?",
-  capability = "Within the next three years, what level of scientific research capability do you expect AI systems to achieve in your field?",
-  displacement = "Advances in AI will significantly reduce the demand for human researchers in my field in the next three years.",
-  threat = "Advances in AI threaten the continued existence and long-term viability of academic research as a human profession.",
-  opportunity = "AI-driven research will increase the overall rate of scientific progress.",
-  concern = "I am concerned about the implications of AI-driven scientific research for my own job security.",
-  future = "How should you strategise about your work for the long term in light of recent AI developments?",
-  ai_roles = "Highest level of AI autonomy you consider acceptable",
-  change = "Have recent advances in AI-driven scientific research caused you to reconsider your research or academic career?",
-  country = ""
-)
+Counts use the filtered sample. Percentages exclude missing or blank answers
+within each variable and are rounded to one decimal place.
 
-question_subtitle = function(question, width = 85) {
-  subtitle = unname(question_subtitles[question])
-  if (length(subtitle) != 1 || is.na(subtitle) || !nzchar(trimws(subtitle))) {
-    return(NULL)
-  }
-  stringr::str_wrap(subtitle, width = width)
-}
-
-subtitle_height = function(subtitle) {
-  if (is.null(subtitle)) return(0)
-  0.22 * (stringr::str_count(subtitle, "\n") + 1) + 0.16
-}
+```{r participant-summary}
+participant_summary
 ```
 
-# Response order
+# Awareness and AI use summary
 
-```{r response-order}
-agreement_order = c("Strongly disagree", "Somewhat disagree",
-                    "Neither agree nor disagree", "Somewhat agree", "Strongly agree")
-
-response_orders = list(
-  displacement = agreement_order,
-  threat = agreement_order,
-  opportunity = agreement_order,
-  concern = agreement_order,
-  awareness = c("Not aware", "Heard about them, but know little",
-                "Somewhat familiar", "Very familiar"),
-  ai_use = c("Not at all",
-             "I have only tried it occasionally",
-             "I use it for a few specific tasks",
-             "I regularly use it for some of my research tasks",
-             "I use it for many of my research tasks",
-             "It is integral to nearly all of my research work"),
-  capability = c(
-    "Cannot help researchers.",
-    "Assist human researchers in carrying out research tasks.",
-    "Perform research tasks independently, but produce lower-quality results than competent human researchers.",
-    "Perform research tasks independently, producing results of comparable quality to those of competent human researchers.",
-    "Perform research tasks independently, producing higher-quality results than competent human researchers."
-  ),
-  stage = c("PhD student", "Postdoctoral researcher", "Assistant professor",
-            "Associate professor", "Full professor",
-            "Currently not conducting research within an academic setting", "Other"),
-  future = c("Yes (please describe how):", "I have no idea", "I don't want to answer"),
-  change = c("I do not intend to reconsider my research or career.",
-             "I am reconsidering research topics.",
-             "I am increasing AI adoption in my research.",
-             "I am reconsidering my academic career.",
-             "I am considering sacrificing less of my life to science.",
-             "I am considering training fewer researchers.",
-             "Other", "I prefer not to answer.")
-)
+```{r ai-background-summary}
+ai_background_summary
 ```
 
-# Plot appearance and layout
-
-```{r plot-helpers}
-plot_base_size = 12
-plot_label_size = 11
-
-survey_theme = function(base_size = plot_base_size, infographic = FALSE) {
-  ink = if (infographic) "#203044" else "#222222"
-  background = if (infographic) "#FAF8F4" else "white"
-
-  theme_minimal(base_size = base_size) +
-    theme(
-      text = element_text(color = ink),
-      plot.background = element_rect(fill = background, color = NA),
-      panel.background = element_rect(fill = background, color = NA),
-      plot.title.position = "plot",
-      plot.title = element_text(size = base_size + 4, face = "bold",
-                                margin = margin(b = 8)),
-      plot.subtitle = element_text(size = base_size, color = "#596675",
-                                   margin = margin(b = 12)),
-      axis.title = element_text(size = base_size),
-      axis.title.x = element_text(margin = margin(t = 10)),
-      axis.text = element_text(size = plot_label_size, color = ink),
-      axis.text.y = element_text(hjust = 1, lineheight = 1.05,
-                                 margin = margin(r = 10)),
-      panel.grid.major.y = element_blank(),
-      panel.grid.minor = element_blank(),
-      legend.position = "bottom",
-      legend.title = element_text(size = plot_label_size),
-      legend.text = element_text(size = plot_label_size),
-      strip.text = element_text(size = base_size, face = "bold"),
-      plot.caption = element_text(size = 10, hjust = 0,
-                                  margin = margin(t = 10)),
-      plot.margin = margin(16, 24, 16, 16)
-    )
-}
-
-theme_academic = function(base_size = plot_base_size) {
-  survey_theme(base_size)
-}
-
-theme_infographic = function(base_size = plot_base_size) {
-  survey_theme(base_size, infographic = TRUE)
-}
-
-question_title = function(question) {
-  titles = c(discipline_of_interest = "Discipline of interest",
-             stage = "Career stage", ai_use = "AI use",
-             role_ra = "AI as a research assistant",
-             role_ir = "AI as an independent researcher",
-             role_pr = "AI as a peer reviewer",
-             role_je = "AI as a journal editor",
-             role_gr = "AI as a grant reviewer",
-             role_dm = "AI as a decision maker")
-  if (question %in% names(titles)) unname(titles[question]) else
-    stringr::str_to_sentence(gsub("_", " ", question))
-}
-
-category_plot = function(counts, title, percentage = FALSE,
-                         infographic = FALSE, wrap_width = 32, subtitle = NULL,
-                         response_order = NULL) {
-  counts = counts |>
-    mutate(response = as.character(response)) |>
-    filter(!is.na(response), nzchar(trimws(response)))
-  if (nrow(counts) == 0) return(NULL)
-
-  # Never sort by count. Reverse levels because ggplot draws the first at bottom.
-  if (is.null(response_order)) response_order = sort(unique(counts$response))
-  unknown = setdiff(counts$response, response_order)
-  if (length(unknown) > 0) {
-    stop("Add these responses to response_orders: ", paste(unknown, collapse = "; "))
-  }
-  counts = counts |>
-    tidyr::complete(response = response_order, fill = list(n = 0)) |>
-    mutate(value = if (percentage) n / sum(n) else n,
-           label = if (percentage) scales::percent(value, accuracy = 1) else
-             as.character(n),
-           response = factor(response, levels = rev(response_order)))
-  wrapped = stringr::str_wrap(levels(counts$response), width = wrap_width)
-  # Reserve at least 0.42 inches per row, plus space for multiline labels.
-  height = 1.8 + sum(pmax(0.42, 0.19 * (stringr::str_count(wrapped, "\n") + 1) + 0.16))
-
-  p = ggplot(counts, aes(x = value, y = response)) +
-    geom_col(fill = if (infographic) "#167D8D" else "#404B59", width = 0.68) +
-    geom_text(aes(label = label), hjust = -0.2,
-              size = plot_label_size / (72.27 / 25.4),
-              color = if (infographic) "#203044" else "#222222") +
-    scale_y_discrete(labels = function(x) stringr::str_wrap(x, width = wrap_width)) +
-    scale_x_continuous(
-      labels = if (percentage) scales::label_percent(accuracy = 1) else
-        scales::label_number(accuracy = 1),
-      breaks = if (percentage) scales::breaks_pretty(n = 5) else
-        function(x) unique(round(scales::breaks_pretty(n = 5)(x))),
-      expand = expansion(mult = c(0, 0.18))
-    ) +
-    labs(title = stringr::str_wrap(title, width = 62),
-         subtitle = subtitle,
-         x = if (percentage) "Share of respondents" else "Number of respondents",
-         y = NULL) +
-    (if (infographic) theme_infographic() else theme_academic())
-  attr(p, "figure_height") = max(4, height) + subtitle_height(subtitle)
-  p
-}
-
-# Group comparisons: one complete response distribution per group.
-grouped_ai_plot = function(data, question, group, group_order, group_title,
-                            rank_responses = NULL) {
-  answers = response_orders[[question]]
-  if (is.null(answers)) stop("Missing response order for ", question)
-  plot_data = data |>
-    transmute(group = as.character(.data[[group]]),
-              response = as.character(.data[[question]])) |>
-    filter(!is.na(group), nzchar(trimws(group)),
-           !is.na(response), nzchar(trimws(response)))
-  if (nrow(plot_data) == 0) return(NULL)
-  stopifnot(all(plot_data$response %in% answers),
-            all(plot_data$group %in% group_order))
-  groups = group_order[group_order %in% plot_data$group]
-  # Rank using each group's valid answers, not raw response counts.
-  # Ties retain the supplied discipline order.
-  if (!is.null(rank_responses)) {
-    stopifnot(all(rank_responses %in% answers))
-    ranking = plot_data |>
-      group_by(group) |>
-      summarise(rank_share = mean(response %in% rank_responses), .groups = "drop") |>
-      mutate(tie_order = match(group, groups)) |>
-      arrange(desc(rank_share), tie_order)
-    groups = ranking$group
-  }
-  diverging = identical(answers, agreement_order)
-
-  segments = plot_data |>
-    count(group, response) |>
-    complete(group = groups, response = answers, fill = list(n = 0)) |>
-    mutate(response = factor(response, levels = answers)) |>
-    arrange(group, response) |>
-    group_by(group) |>
-    mutate(total = sum(n), proportion = n / total,
-           # Shift the whole stack so the neutral segment straddles zero.
-           offset = if (diverging) sum(proportion[1:2]) + proportion[3] / 2 else 0,
-           xmax = cumsum(proportion) - offset,
-           xmin = xmax - proportion) |>
-    ungroup() |>
-    mutate(y = match(group, rev(groups)),
-           label = if_else(proportion >= if (diverging) 0.10 else 0.06,
-                           scales::percent(proportion, accuracy = 1), ""))
-  stopifnot(all(abs(tapply(segments$proportion, segments$group, sum) - 1) < 1e-10),
-            all(segments$xmax >= segments$xmin))
-
-  if (diverging) {
-    palette = c("#6A51A3", "#B6A2D5", "#F2D98D", "#7BC8B0", "#147D73")
-
-  } else {
-    # Viridis provides an ordered, colour-vision-friendly scale, yellow to purple.
-    # A coloured light endpoint keeps "Not aware" visible against white.
-    palette = viridisLite::viridis(length(answers), begin = 0.08, end = 0.90,
-                                   direction = -1)
-  }
-  # Choose black or white text by the larger luminance contrast.
-  rgb = grDevices::col2rgb(palette) / 255
-  linear_rgb = ifelse(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055)^2.4)
-  luminance = colSums(linear_rgb * c(0.2126, 0.7152, 0.0722))
-  text_colors = ifelse((1.05 / (luminance + 0.05)) > ((luminance + 0.05) / 0.05),
-                       "white", "black")
-  segments$text_color = text_colors[as.integer(segments$response)]
-  legend_labels = if (question == "capability") {
-    c("Cannot help researchers", "Assist human researchers",
-      "Independent: lower-quality results", "Independent: comparable-quality results",
-      "Independent: higher-quality results")
-  } else answers
-  legend_labels = stringr::str_wrap(legend_labels, width = 29)
-  axis_labels = stringr::str_wrap(rev(groups), 31)
-  subtitle = question_subtitle(question, width = 110)
-  caption = if (diverging)
-    "Disagreement left; agreement right; neutral centred on zero. Labels shown for segments >= 10%." else
-    "Percentages within each group. Labels shown for segments >= 6%."
-  caption = paste0(caption, "\nPercentages exclude missing answers to this question.")
-
-  p = ggplot(segments) +
-    geom_vline(xintercept = if (diverging) 0 else numeric(0),
-               color = "#777777", linewidth = 0.3, linetype = "dotted") +
-    geom_rect(aes(xmin = xmin, xmax = xmax, ymin = y - 0.40,
-                  ymax = y + 0.40, fill = response), color = "white", linewidth = 0.3) +
-    geom_text(aes(x = (xmin + xmax) / 2, y = y, label = label, color = text_color),
-              size = 10 / (72.27 / 25.4), show.legend = FALSE) +
-    scale_color_identity() +
-    scale_fill_manual(values = setNames(palette, answers), breaks = answers,
-                      labels = legend_labels, drop = FALSE) +
-    scale_y_continuous(breaks = seq_along(groups), labels = axis_labels,
-                       limits = c(0.35, length(groups) + 0.75),
-                       expand = expansion(mult = 0)) +
-    scale_x_continuous(limits = if (diverging) c(-1, 1) else c(0, 1),
-                       breaks = if (diverging) seq(-1, 1, 0.25) else seq(0, 1, 0.25),
-                       labels = function(x) scales::percent(abs(x), accuracy = 1),
-                       expand = expansion(mult = c(0, 0))) +
-    labs(title = paste(question_title(question), "by", group_title),
-         subtitle = subtitle, x = "Share of respondents within each group",
-         y = NULL, fill = NULL, caption = caption) +
-    theme_academic() +
-    guides(fill = guide_legend(ncol = 3, byrow = TRUE)) +
-    theme(plot.title = element_text(margin = margin(b = 12)),
-          plot.subtitle = element_text(margin = margin(b = 24), lineheight = 1.15),
-          legend.text = element_text(size = 10, lineheight = 1.05),
-          legend.key.width = grid::unit(15, "pt"),
-          legend.key.height = grid::unit(12, "pt"),
-          legend.margin = margin(t = 10, b = 6),
-          plot.caption = element_text(size = 10, hjust = 0, lineheight = 1.2))
-  # Equal row spacing must accommodate the longest wrapped group label.
-  row_height = max(0.85, max(stringr::str_count(axis_labels, "\n") + 1) * 0.20 + 0.22)
-  # Reserve title/legend space separately so even two-group charts have thick bars.
-  attr(p, "figure_height") = max(6, 3.5 + length(groups) * row_height + subtitle_height(subtitle))
-  attr(p, "figure_width") = 12
-  attr(p, "figure_label") = paste("grouped", group, question, sep = "-")
-  p
-}
-
-grouped_plots = list()
-
-# Child chunks give every plot in a loop its own device height when knitting.
-show_survey_plot = function(p) {
-  if (is.null(p)) return(invisible(NULL))
-  if (!isTRUE(getOption("knitr.in.progress"))) {
-    print(p)
-    return(invisible(p))
-  }
-  height = attr(p, "figure_height")
-  width = attr(p, "figure_width")
-  if (is.null(width)) width = 9
-  label = attr(p, "figure_label")
-  if (is.null(label)) label = ""
-  output = knitr::knit_child(
-    text = sprintf("```{r %s, echo=FALSE, fig.width=%.2f, fig.height=%.2f}\nprint(p)\n```",
-                   label, width, height),
-    envir = environment(), quiet = TRUE
-  )
-  cat(output, sep = "\n")
-}
-```
-
-# Remove participants based on exclusion criteria
-
-```{r}
-data_filtered = data |> 
-  filter(consent == "Yes",
-         data_quality == "Yes",
-         'Duration (in seconds)' >= 60,
-         Progress == 100)
-```
-
-# Fix the questions
-
-## Disciplines of interest
-
-```{r}
-data_filtered = data_filtered |>
-  mutate(
-    discipline_of_interest = case_when(
-      discipline_1 == "Natural sciences" & discipline_2 == "Other natural sciences" ~ NA_character_,
-      discipline_1 == "Natural sciences" ~ discipline_2,
-      TRUE ~ discipline_1
-    )
-  ) |>
-  filter(!is.na(discipline_of_interest))
-
-# Natural-science fields first, then the other disciplines; alphabetical within each.
-discipline_order = data_filtered |>
-  distinct(discipline_1, discipline_of_interest) |>
-  arrange(desc(discipline_1 == "Natural sciences"), discipline_of_interest) |>
-  pull(discipline_of_interest) |>
-  unique()
-response_orders$discipline_of_interest = discipline_order
-```
-
-## Correct country codes
-
-```{r}
-data_filtered = data_filtered |>
-  mutate(
-    country_iso3 = countrycode(
-      country,
-      origin = "country.name",
-      destination = "iso3c"
-    )
-  )
-
-country_check = data_filtered |>
-  distinct(country, country_iso3) |>
-  arrange(country)
-
-write.csv(country_check, "country_check.csv")
-
-country_counts = data_filtered |>
-  filter(!is.na(country_iso3)) |>
-  count(country_iso3, name = "n")
-```
-
-## AI roles
-
-```{r}
-data_filtered = data_filtered |>
-  rename(
-    role_ra = ai_roles_1,
-    role_ir = ai_roles_2,
-    role_pr = ai_roles_3,
-    role_je = ai_roles_4,
-    role_gr = ai_roles_5,
-    role_dm = ai_roles_6
-  )
-```
-
-# Question types
-
-```{r}
-demographics = c("discipline_of_interest", "stage", "ai_use")
-
-ai_questions = c("awareness", "capability", "displacement", "threat", "opportunity", "concern")
-
-ai_roles = c(role_ra = "Research assistant",
-             role_ir = "Independent researcher",
-             role_pr = "Manuscript peer reviewer",
-             role_je = "Journal editor",
-             role_gr = "Grant reviewer",
-             role_dm = "Research funding decision-maker")
-
-open_text = c("consensus", "comment", "future_5_TEXT", "stage_4_TEXT", "change_5_TEXT")
-
-```
-
-# Academic style
+# Academic plots
 
 ## Demographics
 
-```{r academic-demographics, results='asis'}
+```{r demographics, results='asis'}
+demographic_plots = list()
 for (question in demographics) {
-  counts = data_filtered |> count(response = .data[[question]])
-  show_survey_plot(category_plot(
-    counts, question_title(question), infographic = FALSE,
-    subtitle = question_subtitle(question),
+  counts = demographic_counts[[question]]
+  p = category_plot(
+    counts, question_title(question),
+
     response_order = response_orders[[question]]
-  ))
+  )
+  demographic_plots[[question]] = p
+  show_survey_plot(p, name = paste0("demographics-", question))
 }
 ```
 
 ## AI questions
 
-```{r academic-ai, results='asis'}
-for (question in ai_questions) {
-  counts = data_filtered |> count(response = .data[[question]])
-  show_survey_plot(category_plot(
-    counts, question_title(question), infographic = FALSE,
-    subtitle = question_subtitle(question),
-    response_order = response_orders[[question]]
-  ))
-}
+```{r ai, results='asis'}
+# ai_plots = list()
+# for (question in ai_questions) {
+#   counts = data_filtered |> count(response = .data[[question]])
+#   p = category_plot(
+#     counts, question_title(question),
+# 
+#     response_order = response_orders[[question]]
+#   )
+#   ai_plots[[question]] = p
+#   show_survey_plot(p, name = paste0("ai-", question))
+# }
 ```
 
 ## AI roles
 
-Each panel shows the acceptable level of AI autonomy for one role. Percentages
-use the non-missing responses for that role; panel headings report that sample
-size. All panels share the same response order and percentage scale.
-
-```{r academic-ai-roles, fig.width=12, fig.height=9 + subtitle_height(question_subtitle("ai_roles", width = 115))}
-role_response_order = c("Not permitted", "Permitted with human supervision",
-                        "Permitted autonomously", "Unsure")
-
-role_responses = data_filtered |>
-  select(all_of(names(ai_roles))) |>
-  pivot_longer(everything(), names_to = "role", values_to = "response") |>
-  mutate(response = trimws(response)) |>
-  filter(!is.na(response), nzchar(response))
-
-# Fail visibly if the survey introduces an answer not covered by this ordering.
-stopifnot(all(role_responses$response %in% role_response_order))
-
-role_counts = role_responses |>
-  mutate(role = factor(role, levels = names(ai_roles)),
-         response = factor(response, levels = rev(role_response_order))) |>
-  count(role, response, .drop = FALSE) |>
-  group_by(role) |>
-  mutate(total = sum(n),
-         percentage = if_else(total > 0, n / total, NA_real_),
-         value_label = if_else(total > 0,
-                               scales::percent(percentage, accuracy = 1), "")) |>
-  ungroup()
-
-role_panels = role_counts |>
-  distinct(role, total) |>
-  mutate(heading = paste0(stringr::str_wrap(unname(ai_roles[as.character(role)]), 30),
-                          "\n(n = ", total, ")"))
-role_panel_labels = setNames(role_panels$heading, as.character(role_panels$role))
-
-ai_roles_plot = ggplot(role_counts, aes(x = percentage, y = response)) +
-  geom_col(fill = "#404B59", width = 0.65, na.rm = TRUE) +
-  geom_text(aes(label = value_label), hjust = -0.2,
-            size = plot_label_size / (72.27 / 25.4), color = "#222222",
-            na.rm = TRUE) +
-  facet_wrap(vars(role), ncol = 2, drop = FALSE,
-             labeller = labeller(role = role_panel_labels),
-             axes = "all_y", axis.labels = "all_y") +
-  scale_y_discrete(drop = FALSE,
-                   labels = function(x) stringr::str_wrap(x, width = 22)) +
-  scale_x_continuous(limits = c(0, 1.12), breaks = seq(0, 1, 0.25),
-                     labels = scales::label_percent(accuracy = 1),
-                     expand = expansion(mult = c(0, 0))) +
-  labs(title = "Acceptable AI autonomy by role",
-       subtitle = question_subtitle("ai_roles", width = 115),
-       x = "Share of respondents within each role", y = NULL) +
-  theme_academic() +
-  theme(panel.spacing = grid::unit(18, "pt"),
-        strip.text = element_text(size = 12, face = "bold",
-                                   margin = margin(b = 10)))
-
-ai_roles_plot
+```{r ai-roles, results='asis'}
+ai_roles_plot = make_ai_roles_plot(role_counts, role_response_order, ai_roles, data_filtered)
+show_survey_plot(ai_roles_plot, "ai-roles")
 ```
 
 ## AI change
 
 ```{r ai-change, results='asis'}
-change_long = data_filtered |>
-  select(change) |>
-  filter(!is.na(change)) |>
-  separate_longer_delim(change, delim = ",") |>
-  mutate(change = trimws(change))
+change_plot = category_plot(
+  change_counts, question_title("change"),
 
-change_counts = change_long |>
-  count(response = change)
-
-show_survey_plot(category_plot(
-  change_counts, "Changes in research and career plans", infographic = FALSE,
-  subtitle = question_subtitle("change"),
-  response_order = response_orders$change
-))
+  response_order = response_orders$change, participants = nrow(change_respondents)
+)
+show_survey_plot(change_plot, name = "ai-change-bars")
 ```
 
 ## AI questions by discipline
 
 ```{r ai-by-discipline, results='asis'}
-# Descending positive agreement; awareness uses the most familiar response.
-discipline_rank_responses = list(
-  awareness = "Very familiar",
-  displacement = c("Somewhat agree", "Strongly agree"),
-  threat = c("Somewhat agree", "Strongly agree"),
-  opportunity = c("Somewhat agree", "Strongly agree"),
-  concern = c("Somewhat agree", "Strongly agree")
-)
 for (question in ai_questions) {
   p = grouped_ai_plot(data_filtered, question, "discipline_of_interest",
-                      discipline_order, "discipline",
-                      rank_responses = discipline_rank_responses[[question]])
+                      discipline_order,
+                      rank_responses = discipline_rank_responses[[question]],
+                      hierarchy_parent = "Natural sciences")
   grouped_plots[[paste0("discipline_", question)]] = p
   show_survey_plot(p)
 }
 ```
 
 
+## AI questions by subfield within disciplines
+
+Each set compares the lower-level fields within one primary discipline. The
+All respondents bar pools valid answers within that discipline, including
+respondents who did not specify a subfield. Named subfields with fewer than 10
+respondents are pooled into the corresponding Other category before calculating percentages.
+
+```{r ai-by-subfield, results='asis'}
+for (discipline in names(subfield_disciplines)) {
+  parent = subfield_disciplines[[discipline]]
+  cat("\n\n### ", parent, "\n\n", sep = "")
+  discipline_data = subfield_data[[discipline]]$data
+  subfield_order = subfield_data[[discipline]]$order
+
+  for (question in ai_questions) {
+    p = grouped_ai_plot(discipline_data, question, "discipline_2", subfield_order,
+                        rank_responses = discipline_rank_responses[[question]])
+    if (is.null(p)) next
+    p = p + labs(x = "Share of respondents within each subfield")
+    row_labels = p$data |> distinct(group, y) |> arrange(y) |> pull(group)
+    y_scale = p$scales$get_scales("y")
+    y_scale$labels = stringr::str_wrap(recode(row_labels, !!!subfield_labels), width = 31)
+    name = paste("grouped", discipline, "subfields", question, sep = "_")
+    attr(p, "figure_label") = name
+    grouped_plots[[name]] = p
+    show_survey_plot(p)
+  }
+}
+```
+
 ## AI questions by career stage
 
 ```{r ai-by-stage, results='asis'}
 for (question in ai_questions) {
   p = grouped_ai_plot(data_filtered, question, "stage", response_orders$stage,
-                      "career stage")
+                      fixed_order = TRUE)
   grouped_plots[[paste0("stage_", question)]] = p
   show_survey_plot(p)
 }
 ```
 
 
+## AI questions by country group
+
+Groups are USA, the 27 EU member states plus the UK, China (ISO3 CHN), India,
+and Other countries. All remaining identified countries are included in Other
+countries; missing countries are excluded.
+Agreement plots rank groups by strongly agree; awareness ranks by very familiar.
+
+```{r ai-by-country-group, results='asis'}
+for (question in ai_questions) {
+  p = grouped_ai_plot(data_filtered, question, "country_group", country_group_order,
+                      rank_responses = discipline_rank_responses[[question]])
+  grouped_plots[[paste0("country_group_", question)]] = p
+  show_survey_plot(p)
+}
+```
+
 ## AI questions by familiarity, dichotomized
 
 ```{r ai-by-familiarity, results='asis'}
-data_filtered = data_filtered |>
-  mutate(awareness_dichotomized = case_when(
-    awareness %in% c("Not aware", "Heard about them, but know little") ~
-      "Not familiar",
-    awareness %in% c("Somewhat familiar", "Very familiar") ~
-      "Familiar",
-    TRUE ~ NA_character_
-  ))
-
-# Awareness defines these groups, so do not plot it against itself.
 for (question in setdiff(ai_questions, "awareness")) {
   p = grouped_ai_plot(data_filtered, question, "awareness_dichotomized",
-                      c("Not familiar", "Familiar"), "familiarity")
+                      c("Not familiar", "Familiar"), fixed_order = TRUE)
   grouped_plots[[paste0("familiarity_", question)]] = p
   show_survey_plot(p)
 }
 ```
 
-## AI question pairs as heatmaps
+## Respondents per country
 
-All unique pairs of the six AI questions are shown once (15 panels).
-Each cell is the percentage of respondents selecting that combination, among
-those who answered both questions in that panel. The colour scale is shared
-across panels; percentages within each panel sum to 100% before rounding.
-Axes follow the response orders above, using abbreviated labels for readability.
-AI roles remain separate from these questions.
-
-```{r ai-pair-heatmaps, fig.width=18, fig.height=24, dpi=150, fig.retina=1}
-# Short axis labels map to the exact survey answers in response_orders.
-heatmap_response_labels = list(
-  awareness = c("Not aware", "Heard about it;\nknow little",
-                "Somewhat\nfamiliar", "Very familiar"),
-  capability = c("Cannot help", "Assist humans", "Independent:\nlower\nquality",
-                 "Independent:\ncomparable\nquality", "Independent:\nhigher\nquality"),
-  future = c("Yes: describe how", "No idea", "Prefer not\nto answer")
-)
-for (question in c("displacement", "threat", "opportunity", "concern")) {
-  heatmap_response_labels[[question]] = c(
-    "Strongly\ndisagree", "Somewhat\ndisagree", "Neither agree\nnor disagree",
-    "Somewhat\nagree", "Strongly\nagree"
-  )
-}
-heatmap_label_lookup = unlist(lapply(ai_questions, function(question) {
-  stopifnot(length(heatmap_response_labels[[question]]) == length(response_orders[[question]]))
-  setNames(heatmap_response_labels[[question]],
-           paste(question, seq_along(response_orders[[question]]), sep = "::"))
-}))
-
-ai_question_pairs = combn(ai_questions, 2, simplify = FALSE)
-pair_heatmap_data = purrr::map_dfr(seq_along(ai_question_pairs), function(i) {
-  pair = ai_question_pairs[[i]]
-  row_question = pair[1]
-  column_question = pair[2]
-  row_answers = response_orders[[row_question]]
-  column_answers = response_orders[[column_question]]
-  paired = data_filtered |>
-    transmute(row_answer = .data[[row_question]],
-              column_answer = .data[[column_question]]) |>
-    filter(!is.na(row_answer), nzchar(trimws(row_answer)),
-           !is.na(column_answer), nzchar(trimws(column_answer)))
-  stopifnot(all(paired$row_answer %in% row_answers),
-            all(paired$column_answer %in% column_answers))
-  paired |>
-    count(row_answer, column_answer, name = "count") |>
-    complete(row_answer = row_answers, column_answer = column_answers,
-             fill = list(count = 0)) |>
-    mutate(pair_id = i,
-           panel = paste0(question_title(row_question), " (rows) / ",
-                          question_title(column_question), " (columns)"),
-           row_key = paste(row_question, match(row_answer, row_answers), sep = "::"),
-           column_key = paste(column_question, match(column_answer, column_answers), sep = "::"),
-           total = nrow(paired),
-           proportion = if (nrow(paired) > 0) count / nrow(paired) else NA_real_)
-})
-
-# Unique keys allow each facet to retain its own semantic response order.
-heatmap_keys = unlist(lapply(ai_questions, function(question) {
-  paste(question, seq_along(response_orders[[question]]), sep = "::")
-}))
-pair_heatmap_data = pair_heatmap_data |>
-  mutate(panel = factor(panel, levels = unique(panel)),
-         row_key = factor(row_key, levels = rev(heatmap_keys)),
-         column_key = factor(column_key, levels = heatmap_keys),
-         cell_label = case_when(
-           is.na(proportion) ~ "-",
-           count == 0 ~ "0",
-           proportion < 0.01 ~ "<1",
-           TRUE ~ sprintf("%.0f", 100 * proportion)
-         ))
-
-pair_checks = pair_heatmap_data |>
-  group_by(pair_id) |>
-  summarise(total = first(total), cells = sum(count), share = sum(proportion), .groups = "drop")
-stopifnot(nrow(pair_checks) == choose(length(ai_questions), 2),
-          all(pair_checks$cells == pair_checks$total),
-          all(abs(pair_checks$share[pair_checks$total > 0] - 1) < 1e-10))
-
-heatmap_max = max(c(0.01, pair_heatmap_data$proportion), na.rm = TRUE)
-pair_heatmap_data = pair_heatmap_data |>
-  mutate(text_colour = if_else(!is.na(proportion) & proportion > heatmap_max * 0.55,
-                               "white", "#222222"))
-ai_pairs_plot = ggplot(pair_heatmap_data,
-                       aes(x = column_key, y = row_key, fill = proportion)) +
-  geom_tile(color = "white", linewidth = 0.5) +
-  geom_text(aes(label = cell_label, color = text_colour),
-            size = 10 / (72.27 / 25.4), show.legend = FALSE) +
-  scale_color_identity() +
-  scale_fill_gradient(low = "#F1F5F8", high = "#244E6A",
-                      limits = c(0, heatmap_max), na.value = "#EEEEEE",
-                      labels = scales::label_percent(accuracy = 1),
-                      name = "Share of paired responses") +
-  scale_x_discrete(labels = function(x) unname(heatmap_label_lookup[x]),
-                   expand = expansion(add = 0)) +
-  scale_y_discrete(labels = function(x) unname(heatmap_label_lookup[x]),
-                   expand = expansion(add = 0)) +
-  facet_wrap(vars(panel), ncol = 3, scales = "free",
-             labeller = label_wrap_gen(width = 42)) +
-  labs(title = "AI questions: all pairwise response distributions",
-       subtitle = "Rows and columns identify the two questions in each panel. Cell numbers are percentages of respondents answering both.",
-       x = NULL, y = NULL,
-       caption = "One panel per unique pair; shared colour scale. Missing answers excluded separately for each pair.\n0 = no responses; <1 = less than 1%; - = no paired responses. Percentages may not sum to 100 after rounding.") +
-  theme_academic() +
-  theme(axis.text.x = element_text(size = 9, lineheight = 1.05,
-                                    margin = margin(t = 8)),
-        axis.text.y = element_text(size = 9, lineheight = 1.05,
-                                    margin = margin(r = 8)),
-        panel.grid = element_blank(),
-        panel.spacing.x = grid::unit(24, "pt"),
-        panel.spacing.y = grid::unit(30, "pt"),
-        strip.text = element_text(size = 12, face = "bold", margin = margin(b = 12)),
-        plot.subtitle = element_text(margin = margin(b = 20)),
-        plot.caption = element_text(hjust = 0, lineheight = 1.2)) +
-  guides(fill = guide_colorbar(barwidth = grid::unit(220, "pt"),
-                               barheight = grid::unit(12, "pt"), title.position = "top"))
-
-ai_pairs_plot
-```
-
-
-# Infographic style
-
-## Demographics
-
-```{r infographic-demographics, results='asis'}
-for (question in demographics) {
-  counts = data_filtered |> count(response = .data[[question]])
-  show_survey_plot(category_plot(
-    counts, question_title(question), percentage = TRUE, infographic = TRUE,
-    subtitle = question_subtitle(question),
-    response_order = response_orders[[question]]
-  ))
-}
+```{r country-respondent-counts, results='asis'}
+country_count_plot = make_country_count_plot(country_bars, country_counts)
+show_survey_plot(country_count_plot, "country-count-bars", kind = "country-count")
 ```
 
 ## World map
 
-```{r world-map, fig.width=9, fig.height=5.5 + subtitle_height(question_subtitle("country"))}
-world = ne_countries(
-  scale = "medium",
-  returnclass = "sf"
-)
+```{r world-map, results='asis'}
+world_plot = make_world_map(world_data, country_counts)
+show_survey_plot(world_plot, "world-map", kind = "map")
 
-world_data = world |>
-  left_join(
-    country_counts,
-    by = c("adm0_a3" = "country_iso3")
-  )
-
-ggplot(world_data) +
-  geom_sf(
-    aes(fill = n),
-    color = "white",
-    linewidth = 0.15
-  ) +
-  scale_fill_viridis_c(
-    option = "mako",
-    direction = -1,
-    na.value = "grey90",
-    name = "Participants"
-  ) +
-  coord_sf(expand = FALSE) +
-  labs(
-    title = "Geographical distribution of respondents",
-    subtitle = question_subtitle("country")
-  ) +
-  theme_infographic() +
-  theme(
-    axis.text = element_blank(),
-    axis.title = element_blank(),
-    panel.grid = element_blank()
-  ) +
-  guides(fill = guide_colorbar(
-    barwidth = grid::unit(100, "pt"),
-    barheight = grid::unit(9, "pt"), title.position = "top"
-  ))
-
-country_check |>
-  filter(!is.na(country_iso3)) |>
-  anti_join(
-    sf::st_drop_geometry(world),
-    by = c("country_iso3" = "adm0_a3")
-  )
+unmatched_map_countries
 ```
-
-

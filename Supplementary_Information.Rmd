@@ -1,0 +1,541 @@
+---
+title: "Supplementary Information"
+author: "Balazs Aczel, Dominik Dianovics, Barnabas Szaszi, Peter Szecsi"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      out.width = "100%", fig.align = "center")
+options(knitr.kable.NA = "")
+if (.Platform$OS.type == "windows") Sys.setlocale("LC_CTYPE", ".UTF-8")
+```
+
+```{=html}
+<style>
+@page { size: A4 portrait; margin: 0; }
+body { background: #f2f2f2; }
+.main-container {
+  width: 210mm;
+  max-width: none;
+  min-height: 297mm;
+  box-sizing: border-box;
+  margin: 12mm auto;
+  padding: 5mm;
+  background: white;
+}
+@media print {
+  html, body {
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white;
+  }
+  .main-container {
+    width: 210mm !important;
+    max-width: none !important;
+    min-height: 0;
+    margin: 0 !important;
+    padding: 5mm !important;
+  }
+  .figure { break-inside: avoid; }
+  .figure img { width: 100%; max-width: 100%; }
+  h2, h3 { break-after: avoid; }
+}
+
+h2, h3 {
+  font-family: "Times New Roman", Times, serif;
+  font-weight: 700;
+  line-height: 1.25;
+}
+h2 { font-size: 30px; margin-top: 48px; margin-bottom: 28px; }
+h3 { font-size: 25px; margin-top: 56px; margin-bottom: 24px; }
+.figure {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 28px;
+}
+.figure .caption {
+  order: -1;
+  text-align: right;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 16px;
+  font-weight: 400;
+  font-style: italic;
+  margin: 0 0 6px;
+}
+h1.title {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 30px;
+  font-weight: 700;
+}
+
+h4.author {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.contact-info {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #555;
+  line-height: 1.4;
+  margin: 4px 0 20px;
+}
+.contact-info a { color: inherit; }
+
+h1, table, .table { font-family: "Times New Roman", Times, serif; }
+h1:not(.title) { font-size: 32px; margin-top: 48px; margin-bottom: 24px; }
+table, .table { width: 100%; font-size: 14px; line-height: 1.3; }
+table caption { text-align: right; font-style: italic; color: black; }
+</style>
+```
+
+This document includes the saved tables and all  plots.
+Figures and tables are included from their saved files.
+
+# Invitation email
+
+Dear ${m://FirstName},
+
+I'm Balazs Aczel, and I lead the Metascience Lab at Eotvos Lorand University in Budapest, Hungary.
+
+My colleagues and I are preparing a policy report on how much independence AI should have in scientific research. It would be really helpful for us if you could share your views on how AI is changing research in your field and what it might mean for your own work.
+
+Would you be willing to share your views by completing a short survey? It takes less than 5 minutes, and we welcome responses from researchers across all disciplines, regardless of their experience with AI.
+
+Follow this link to the Survey:
+${l://SurveyLink?d=Take the survey}
+
+Or copy and paste the URL below into your internet browser:
+${l://SurveyURL}
+
+Thank you in advance for your time and contribution!
+
+Best regards,
+Prof. Balazs Aczel, Dsc, PhD
+Eotvos Lorand University, Hungary
+Faculty of Education and Psychology
+Budapest, Kazinczy u. 23-27., H-1075 Hungary
+Tel.: +36 1 461 4500/3464
+
+
+contact: decisionlab@ppk.elte.hu
+
+You can independently verify this invitation on our university’s website, where we have published information about the study: https://metasciencelab.elte.hu/our-projects/
+
+This invitation was sent through our university’s Qualtrics survey platform. You can verify our institutional affiliation through the ELTE Faculty of Education and Psychology website.
+
+Disclaimer: We found your email address from your ORCID profile. Ethical approval 0602/2026 was issued by the Research Ethics Committee of the Faculty of Education and Psychology of Eötvös Loránd University, Hungary.
+
+If you don't want to be contacted for our later studies, you can unsubscribe here:
+${l://OptOutLink?d=Click here to unsubscribe}
+
+# Tables
+
+
+<!-- ## Participant exclusions -->
+
+<!-- ```{r supplementary-table-1} -->
+<!-- knitr::kable( -->
+<!--   read.csv("cleaning_summary.csv", check.names = FALSE, fileEncoding = "UTF-8"), -->
+<!--   caption = "Table S1. Participant exclusions" -->
+<!-- ) -->
+<!-- ``` -->
+
+<!-- *Note.* Sequential exclusions from the participant sample. -->
+
+
+<!-- ## Participant characteristics -->
+
+<!-- ```{r supplementary-table-2} -->
+<!-- knitr::kable( -->
+<!--   read.csv("participant_summary.csv", check.names = FALSE, fileEncoding = "UTF-8"), -->
+<!--   caption = "Table S2. Participant characteristics" -->
+<!-- ) -->
+<!-- ``` -->
+
+<!-- *Note.* Percentages use valid answers within each variable and exclude missing answers. -->
+
+
+<!-- ## Awareness and AI use -->
+
+<!-- ```{r supplementary-table-3} -->
+<!-- knitr::kable( -->
+<!--   read.csv("ai_background_summary.csv", check.names = FALSE, fileEncoding = "UTF-8"), -->
+<!--   caption = "Table S3. Awareness and AI use" -->
+<!-- ) -->
+<!-- ``` -->
+
+<!-- *Note.* Percentages use valid answers to each question and exclude missing answers. -->
+
+
+## Country classifications
+
+```{r supplementary-table-1}
+knitr::kable(
+  read.csv("country_check.csv", check.names = FALSE, fileEncoding = "UTF-8", row.names = 1),
+  caption = "Table S1. Country classifications"
+)
+```
+
+*Note.* Country labels, ISO3 codes, and continent assignments used in the analysis.
+
+
+# Plots
+
+
+<!-- ## Participant characteristics -->
+
+
+<!-- ```{r supplementary-figure-1, fig.cap="S1"} -->
+<!-- knitr::include_graphics("plots_png/academic/demographics_discipline_of_interest_academic.png") -->
+<!-- ``` -->
+
+## Response and exclusions
+
+The flow of responses from email invitation to the analysed sample 
+
+```{r supplementary-figure-54, fig.cap="S1"}
+knitr::include_graphics("plots_png/academic/emails.png")
+```
+
+## Respondents by country
+
+```{r supplementary-figure-62, fig.cap="S2"}
+knitr::include_graphics("plots_png/academic/country_count_bars_academic.png")
+```
+
+## Geographical distribution
+
+```{r supplementary-figure-55, fig.cap="S3"}
+knitr::include_graphics("plots_png/academic/world_map_academic.png")
+```
+
+
+<!-- ```{r supplementary-figure-2, fig.cap="S2"} -->
+<!-- knitr::include_graphics("plots_png/academic/demographics_stage_academic.png") -->
+<!-- ``` -->
+
+
+<!-- ```{r supplementary-figure-3, fig.cap="S3"} -->
+<!-- knitr::include_graphics("plots_png/academic/demographics_ai_use_academic.png") -->
+<!-- ``` -->
+
+
+<!-- ## Overall AI questions -->
+
+
+<!-- ```{r supplementary-figure-4, fig.cap="S4"} -->
+<!-- knitr::include_graphics("plots_png/academic/ai_awareness_academic.png") -->
+<!-- ``` -->
+
+
+```{r supplementary-figure-5, fig.cap="S3"}
+# knitr::include_graphics("plots_png/academic/ai_capability_academic.png")
+```
+
+```{r supplementary-figure-6, fig.cap="S4"}
+# knitr::include_graphics("plots_png/academic/ai_displacement_academic.png")
+```
+
+```{r supplementary-figure-7, fig.cap="S5"}
+# knitr::include_graphics("plots_png/academic/ai_threat_academic.png")
+```
+
+```{r supplementary-figure-8, fig.cap="S6"}
+# knitr::include_graphics("plots_png/academic/ai_opportunity_academic.png")
+```
+
+```{r supplementary-figure-9, fig.cap="S7"}
+# knitr::include_graphics("plots_png/academic/ai_concern_academic.png")
+```
+
+
+<!-- ## Acceptable AI roles -->
+
+
+<!-- ```{r supplementary-figure-10, fig.cap="S10"} -->
+<!-- knitr::include_graphics("plots_png/academic/ai_roles_academic.png") -->
+<!-- ``` -->
+
+
+<!-- ## Changes to research and careers -->
+
+
+<!-- ```{r supplementary-figure-11, fig.cap="S11"} -->
+<!-- knitr::include_graphics("plots_png/academic/ai_change_bars_academic.png") -->
+<!-- ``` -->
+
+
+<!-- ## AI questions by discipline -->
+
+<!-- Already contained in the manuscript. -->
+
+
+<!-- ```{r supplementary-figure-12, fig.cap="S12"} -->
+<!-- knitr::include_graphics("plots_png/academic/grouped_discipline_of_interest_awareness_academic.png") -->
+<!-- ``` -->
+
+
+<!-- ```{r supplementary-figure-13, fig.cap="S13"} -->
+<!-- knitr::include_graphics("plots_png/academic/grouped_discipline_of_interest_capability_academic.png") -->
+<!-- ``` -->
+
+
+<!-- ```{r supplementary-figure-14, fig.cap="S14"} -->
+<!-- knitr::include_graphics("plots_png/academic/grouped_discipline_of_interest_displacement_academic.png") -->
+<!-- ``` -->
+
+
+<!-- ```{r supplementary-figure-15, fig.cap="S15"} -->
+<!-- knitr::include_graphics("plots_png/academic/grouped_discipline_of_interest_threat_academic.png") -->
+<!-- ``` -->
+
+
+<!-- ```{r supplementary-figure-16, fig.cap="S16"} -->
+<!-- knitr::include_graphics("plots_png/academic/grouped_discipline_of_interest_opportunity_academic.png") -->
+<!-- ``` -->
+
+
+<!-- ```{r supplementary-figure-17, fig.cap="S17"} -->
+<!-- knitr::include_graphics("plots_png/academic/grouped_discipline_of_interest_concern_academic.png") -->
+<!-- ``` -->
+
+
+## Subfields within social sciences
+
+
+```{r supplementary-figure-18, fig.cap="S4"}
+knitr::include_graphics("plots_png/academic/grouped_social_sciences_subfields_awareness_academic.png")
+```
+
+
+```{r supplementary-figure-19, fig.cap="S5"}
+knitr::include_graphics("plots_png/academic/grouped_social_sciences_subfields_capability_academic.png")
+```
+
+
+```{r supplementary-figure-20, fig.cap="S6"}
+knitr::include_graphics("plots_png/academic/grouped_social_sciences_subfields_displacement_academic.png")
+```
+
+
+```{r supplementary-figure-21, fig.cap="S7"}
+knitr::include_graphics("plots_png/academic/grouped_social_sciences_subfields_threat_academic.png")
+```
+
+
+```{r supplementary-figure-22, fig.cap="S8"}
+knitr::include_graphics("plots_png/academic/grouped_social_sciences_subfields_opportunity_academic.png")
+```
+
+
+```{r supplementary-figure-23, fig.cap="S9"}
+knitr::include_graphics("plots_png/academic/grouped_social_sciences_subfields_concern_academic.png")
+```
+
+
+## Subfields within medical, health and life sciences
+
+
+```{r supplementary-figure-24, fig.cap="S10"}
+knitr::include_graphics("plots_png/academic/grouped_medical_life_sciences_subfields_awareness_academic.png")
+```
+
+
+```{r supplementary-figure-25, fig.cap="S11"}
+knitr::include_graphics("plots_png/academic/grouped_medical_life_sciences_subfields_capability_academic.png")
+```
+
+
+```{r supplementary-figure-26, fig.cap="S12"}
+knitr::include_graphics("plots_png/academic/grouped_medical_life_sciences_subfields_displacement_academic.png")
+```
+
+
+```{r supplementary-figure-27, fig.cap="S13"}
+knitr::include_graphics("plots_png/academic/grouped_medical_life_sciences_subfields_threat_academic.png")
+```
+
+
+```{r supplementary-figure-28, fig.cap="S14"}
+knitr::include_graphics("plots_png/academic/grouped_medical_life_sciences_subfields_opportunity_academic.png")
+```
+
+
+```{r supplementary-figure-29, fig.cap="S15"}
+knitr::include_graphics("plots_png/academic/grouped_medical_life_sciences_subfields_concern_academic.png")
+```
+
+
+## Subfields within engineering and technology
+
+
+```{r supplementary-figure-30, fig.cap="S16"}
+knitr::include_graphics("plots_png/academic/grouped_engineering_subfields_awareness_academic.png")
+```
+
+
+```{r supplementary-figure-31, fig.cap="S17"}
+knitr::include_graphics("plots_png/academic/grouped_engineering_subfields_capability_academic.png")
+```
+
+
+```{r supplementary-figure-32, fig.cap="S18"}
+knitr::include_graphics("plots_png/academic/grouped_engineering_subfields_displacement_academic.png")
+```
+
+
+```{r supplementary-figure-33, fig.cap="S19"}
+knitr::include_graphics("plots_png/academic/grouped_engineering_subfields_threat_academic.png")
+```
+
+
+```{r supplementary-figure-34, fig.cap="S20"}
+knitr::include_graphics("plots_png/academic/grouped_engineering_subfields_opportunity_academic.png")
+```
+
+
+```{r supplementary-figure-35, fig.cap="S21"}
+knitr::include_graphics("plots_png/academic/grouped_engineering_subfields_concern_academic.png")
+```
+
+## Subfields within humanities and the arts
+
+```{r supplementary-figure-56, fig.cap="S22"}
+knitr::include_graphics("plots_png/academic/grouped_humanities_subfields_awareness_academic.png")
+```
+
+```{r supplementary-figure-57, fig.cap="S23"}
+knitr::include_graphics("plots_png/academic/grouped_humanities_subfields_capability_academic.png")
+```
+
+```{r supplementary-figure-58, fig.cap="S24"}
+knitr::include_graphics("plots_png/academic/grouped_humanities_subfields_displacement_academic.png")
+```
+
+```{r supplementary-figure-59, fig.cap="S25"}
+knitr::include_graphics("plots_png/academic/grouped_humanities_subfields_threat_academic.png")
+```
+
+```{r supplementary-figure-60, fig.cap="S26"}
+knitr::include_graphics("plots_png/academic/grouped_humanities_subfields_opportunity_academic.png")
+```
+
+```{r supplementary-figure-61, fig.cap="S27"}
+knitr::include_graphics("plots_png/academic/grouped_humanities_subfields_concern_academic.png")
+```
+
+
+
+## AI questions by career stage
+
+
+```{r supplementary-figure-36, fig.cap="S28"}
+knitr::include_graphics("plots_png/academic/grouped_stage_awareness_academic.png")
+```
+
+
+```{r supplementary-figure-37, fig.cap="S29"}
+knitr::include_graphics("plots_png/academic/grouped_stage_capability_academic.png")
+```
+
+
+```{r supplementary-figure-38, fig.cap="S30"}
+knitr::include_graphics("plots_png/academic/grouped_stage_displacement_academic.png")
+```
+
+
+```{r supplementary-figure-39, fig.cap="S31"}
+knitr::include_graphics("plots_png/academic/grouped_stage_threat_academic.png")
+```
+
+
+```{r supplementary-figure-40, fig.cap="S32"}
+knitr::include_graphics("plots_png/academic/grouped_stage_opportunity_academic.png")
+```
+
+
+```{r supplementary-figure-41, fig.cap="S33"}
+knitr::include_graphics("plots_png/academic/grouped_stage_concern_academic.png")
+```
+
+
+## AI questions by country group
+
+
+```{r supplementary-figure-42, fig.cap="S34"}
+knitr::include_graphics("plots_png/academic/grouped_country_group_awareness_academic.png")
+```
+
+
+```{r supplementary-figure-43, fig.cap="S35"}
+knitr::include_graphics("plots_png/academic/grouped_country_group_capability_academic.png")
+```
+
+
+```{r supplementary-figure-44, fig.cap="S36"}
+knitr::include_graphics("plots_png/academic/grouped_country_group_displacement_academic.png")
+```
+
+
+```{r supplementary-figure-45, fig.cap="S37"}
+knitr::include_graphics("plots_png/academic/grouped_country_group_threat_academic.png")
+```
+
+
+```{r supplementary-figure-46, fig.cap="S38"}
+knitr::include_graphics("plots_png/academic/grouped_country_group_opportunity_academic.png")
+```
+
+
+```{r supplementary-figure-47, fig.cap="S39"}
+knitr::include_graphics("plots_png/academic/grouped_country_group_concern_academic.png")
+```
+
+
+## AI questions by familiarity
+
+
+```{r supplementary-figure-48, fig.cap="S40"}
+knitr::include_graphics("plots_png/academic/grouped_awareness_dichotomized_capability_academic.png")
+```
+
+
+```{r supplementary-figure-49, fig.cap="S41"}
+knitr::include_graphics("plots_png/academic/grouped_awareness_dichotomized_displacement_academic.png")
+```
+
+
+```{r supplementary-figure-50, fig.cap="S42"}
+knitr::include_graphics("plots_png/academic/grouped_awareness_dichotomized_threat_academic.png")
+```
+
+
+```{r supplementary-figure-51, fig.cap="S43"}
+knitr::include_graphics("plots_png/academic/grouped_awareness_dichotomized_opportunity_academic.png")
+```
+
+
+```{r supplementary-figure-52, fig.cap="S44"}
+knitr::include_graphics("plots_png/academic/grouped_awareness_dichotomized_concern_academic.png")
+```
+
+
+<!-- ## Relationships between AI questions -->
+
+
+<!-- ```{r supplementary-figure-53, fig.cap="S53"} -->
+<!-- knitr::include_graphics("plots_png/academic/ai_pair_heatmaps_academic.png") -->
+<!-- ``` -->
+
+
+

@@ -1,0 +1,513 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE)
+if (.Platform$OS.type == "windows") Sys.setlocale("LC_CTYPE", ".UTF-8")
+library(tidyverse)
+```
+
+```{r}
+# Render data_wrangling.Rmd before running this document.
+data_filtered = read.csv("data_clean.csv", check.names = FALSE, na.strings = "", fileEncoding = "UTF-8")
+filter_counts = read.csv("cleaning_summary.csv")
+```
+
+# Response order
+
+```{r response-order}
+agreement_order = c("Strongly disagree", "Somewhat disagree",
+                    "Neither agree nor disagree", "Somewhat agree", "Strongly agree")
+
+response_orders = list(
+  displacement = agreement_order,
+  threat = agreement_order,
+  opportunity = agreement_order,
+  concern = agreement_order,
+  awareness = c("Not aware", "Heard about them, but know little",
+                "Somewhat familiar", "Very familiar"),
+  ai_use = c("Not at all",
+             "I have only tried it occasionally",
+             "I use it for a few specific tasks",
+             "I regularly use it for some of my research tasks",
+             "I use it for many of my research tasks",
+             "It is integral to nearly all of my research work"),
+  capability = c(
+    "Cannot help researchers.",
+    "Assist human researchers in carrying out research tasks.",
+    "Perform research tasks independently, but produce lower-quality results than competent human researchers.",
+    "Perform research tasks independently, producing results of comparable quality to those of competent human researchers.",
+    "Perform research tasks independently, producing higher-quality results than competent human researchers."
+  ),
+  stage = c("PhD student", "Postdoctoral researcher", "Assistant professor",
+            "Associate professor", "Full professor",
+            "Currently not conducting research within an academic setting", "Other"),
+  change = c("I do not intend to reconsider my research or career.",
+             "I am reconsidering research topics.",
+             "I am increasing AI adoption in my research.",
+             "I am reconsidering my academic career.",
+             "I am considering sacrificing less of my life to science.",
+             "I am considering training fewer researchers.",
+             "Other", "I prefer not to answer.")
+)
+```
+
+```{r text-summary-helpers}
+# Use valid answers for each item; combine categories before rounding.
+valid_answers = function(x) x[!is.na(x) & nzchar(trimws(x))]
+response_percent = function(x, responses) {
+  x = valid_answers(x)
+  stopifnot(length(x) > 0)
+  round(100 * mean(x %in% responses))
+}
+agree = c("Somewhat agree", "Strongly agree")
+disagree = c("Somewhat disagree", "Strongly disagree")
+discipline_percent = function(question, discipline, responses) {
+  response_percent(data_filtered[[question]][data_filtered$discipline_of_interest %in% discipline], responses)
+}
+# Match the existing prose's discipline/field comparisons.
+discipline_ranking = function(question, responses, decreasing = TRUE) {
+  data_filtered |>
+    filter(!is.na(.data[[question]]), nzchar(trimws(.data[[question]])),
+           !is.na(discipline_of_interest), nzchar(trimws(discipline_of_interest))) |>
+    group_by(discipline_of_interest) |>
+    summarise(percent = 100 * mean(.data[[question]] %in% responses), .groups = "drop") |>
+    arrange(if (decreasing) desc(percent) else percent, discipline_of_interest)
+}
+```
+
+Percentages use nonmissing answers to each question and are rounded to whole percentages. Combined response categories are calculated before rounding. Discipline comparisons below use the specific natural-science fields and the other broad disciplines, as in the existing results text.
+
+# Participant exclusions
+
+```{r exclusion-counts}
+data_n = filter_counts$Remaining[1]
+data_filter_consent_n = filter_counts$Excluded[2]
+data_filter_quality_n = filter_counts$Excluded[3]
+data_filter_duration_n = filter_counts$Excluded[4]
+data_filtered_n = nrow(data_filtered)
+data_excluded_n = sum(filter_counts$Excluded)
+change_excluded_n = sum(data_filtered$change_invalid)
+knitr::kable(filter_counts)
+```
+
+# 1. Opportunity
+
+## Calculate opportunity results
+
+```{r opportunity-results}
+opportunity_answers = data_filtered$opportunity
+opportunity_answers = opportunity_answers[!is.na(opportunity_answers) & nzchar(trimws(opportunity_answers))]
+
+opportunity_strong_agree = round(100 * mean(opportunity_answers == "Strongly agree"))
+
+opportunity_some_agree = round(100 * mean(opportunity_answers == "Somewhat agree"))
+
+opportunity_strong_disagree = round(100 * mean(opportunity_answers == "Strongly disagree"))
+
+opportunity_some_disagree = round(100 * mean(opportunity_answers == "Somewhat disagree"))
+
+opportunity_undecided = round(100 * mean(opportunity_answers == "Neither agree nor disagree"))
+
+opportunity_by_discipline = data_filtered |>
+  filter(!is.na(opportunity), nzchar(trimws(opportunity)),
+         !is.na(discipline_of_interest), nzchar(trimws(discipline_of_interest))) |>
+  group_by(discipline_of_interest) |>
+  summarise(
+    strong_agree_percent = 100 * mean(opportunity == "Strongly agree"),
+    some_agree_percent = 100 * mean(opportunity == "Somewhat agree"),
+    strong_disagree_percent = 100 * mean(opportunity == "Strongly disagree"),
+    some_disagree_percent = 100 * mean(opportunity == "Somewhat disagree")
+  )
+
+opportunity_strong_agree_by_discipline_high = opportunity_by_discipline |>
+  arrange(desc(strong_agree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+opportunity_some_agree_by_discipline_high = opportunity_by_discipline |>
+  arrange(desc(some_agree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+opportunity_strong_disagree_by_discipline_high = opportunity_by_discipline |>
+  arrange(desc(strong_disagree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+opportunity_some_disagree_by_discipline_high = opportunity_by_discipline |>
+  arrange(desc(some_disagree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+opportunity_strong_agree_by_discipline_low = opportunity_by_discipline |>
+  arrange(strong_agree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+opportunity_some_agree_by_discipline_low = opportunity_by_discipline |>
+  arrange(some_agree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+opportunity_strong_disagree_by_discipline_low = opportunity_by_discipline |>
+  arrange(strong_disagree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+opportunity_some_disagree_by_discipline_low = opportunity_by_discipline |>
+  arrange(some_disagree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+opportunity_strong_agree_percent_high = round(max(opportunity_by_discipline$strong_agree_percent))
+opportunity_strong_agree_percent_low = round(min(opportunity_by_discipline$strong_agree_percent))
+opportunity_strong_agree_difference = round(max(opportunity_by_discipline$strong_agree_percent) - min(opportunity_by_discipline$strong_agree_percent))
+opportunity_some_disagree_percent_high = round(max(opportunity_by_discipline$some_disagree_percent))
+opportunity_strong_disagree_percent_high = round(max(opportunity_by_discipline$strong_disagree_percent))
+
+```
+
+## Opportunity text
+
+Respondents somewhat (`r opportunity_some_agree`%) or strongly agree (`r opportunity_strong_agree`%) that AI-driven research will accelerate the overall rate of scientific progress. Our data show that `r opportunity_strong_disagree`% of participants disagree strongly with the statement, `r opportunity_some_disagree`% disagree somewhat, and `r opportunity_undecided`% remain undecided. The highest proportion of strong agreement was in `r opportunity_strong_agree_by_discipline_high` (`r opportunity_strong_agree_percent_high`%), the least in `r opportunity_strong_agree_by_discipline_low` (`r opportunity_strong_agree_percent_low`%); the difference is `r opportunity_strong_agree_difference` percentage points. Researchers in `r opportunity_some_disagree_by_discipline_high` had the highest proportion of respondents selecting "Somewhat disagree" (`r opportunity_some_disagree_percent_high`%), while those in `r opportunity_strong_disagree_by_discipline_high` had the highest proportion selecting "Strongly disagree" (`r opportunity_strong_disagree_percent_high`%).
+
+# 2. Capability
+
+## Calculate capability results
+
+```{r capability-results}
+capability_percent = vapply(response_orders$capability, function(answer) {
+  response_percent(data_filtered$capability, answer)
+}, numeric(1))
+capability_superior = discipline_ranking("capability", response_orders$capability[5])
+capability_cannot = discipline_ranking("capability", response_orders$capability[1])
+capability_assist = discipline_ranking("capability", response_orders$capability[2])
+```
+
+## Capability text
+
+The next question regarded AI’s expected level of research capabilities in a three-year timeframe. Overall, `r capability_percent[1]`% said that AI systems cannot help in their research field, while `r capability_percent[2]`% said that they can assist, but not work independently of humans. The next three options all assume that these systems can work autonomously, with different levels of quality compared to a competent researcher. `r capability_percent[3]`% of respondents, irrespective of discipline, said that in the next three years, AI systems can achieve lower-quality results; `r capability_percent[4]`% believe the results could be of comparable quality, while `r capability_percent[5]`% believe AI can surpass even a competent researcher. Regarding disciplinary differences, researchers in `r capability_superior$discipline_of_interest[1]` have the highest proportion who think AI systems can work independently and produce superior quality (`r round(capability_superior$percent[1])`%). On the other end, scientists in `r capability_cannot$discipline_of_interest[1]` have the highest rate of respondents who believe AI cannot help them (`r round(capability_cannot$percent[1])`%), and `r capability_assist$discipline_of_interest[1]` predominantly think that AI can only assist in their field (`r round(capability_assist$percent[1])`%).
+
+
+# AI roles
+
+## Calculate AI roles results
+
+```{r ai-role-results}
+role_names = c(role_ra = "research assistant", role_ir = "independent researcher",
+               role_pr = "manuscript reviewer", role_je = "journal editor",
+               role_gr = "grant reviewer", role_dm = "research funding decision-maker")
+role_percent = function(role, response) response_percent(data_filtered[[role]], response)
+role_prohibition = tibble(role = names(role_names), label = unname(role_names)) |>
+  rowwise() |>
+  mutate(percent = 100 * mean(valid_answers(data_filtered[[role]]) == "Not permitted")) |>
+  ungroup() |>
+  arrange(percent, label)
+role_prohibition_text = paste0(role_prohibition$label, " (", round(role_prohibition$percent), "%)", collapse = ", ")
+```
+
+## AI roles text
+
+Researchers are most likely to turn over the work of research assistants to AI, but the majority of them would still like to supervise (`r role_percent("role_ra", "Permitted with human supervision")`%), with autonomous work acceptable only to `r role_percent("role_ra", "Permitted autonomously")`%. `r role_percent("role_ra", "Not permitted")`% think that these systems should not be permitted to be used. Prohibition across roles, ranked by the percentage of respondents who chose “not permitted”: research assistant (`r role_percent("role_ra", "Not permitted")`%), manuscript reviewer (`r role_percent("role_pr", "Not permitted")`%), independent researcher (`r role_percent("role_ir", "Not permitted")`%), journal editor (`r role_percent("role_je", "Not permitted")`%), grant reviewer (`r role_percent("role_gr", "Not permitted")`%), and research funding decision-maker (`r role_percent("role_dm", "Not permitted")`%). Peer review is more widely accepted for delegation with supervision (`r role_percent("role_pr", "Permitted with human supervision")`%) than research (`r role_percent("role_ir", "Permitted with human supervision")`%), editorial work (`r role_percent("role_je", "Permitted with human supervision")`%), grant review (`r role_percent("role_gr", "Permitted with human supervision")`%), or funding decisions (`r role_percent("role_dm", "Permitted with human supervision")`%). The data show that `r role_percent("role_ir", "Permitted autonomously")`% consider it acceptable for research to be done solely by AI.
+
+# Displacement
+
+## Calculate displacement results
+
+```{r displacement-results}
+displacement_answers = data_filtered$displacement
+displacement_answers = displacement_answers[!is.na(displacement_answers) & nzchar(trimws(displacement_answers))]
+
+displacement_strong_agree = round(100 * mean(displacement_answers == "Strongly agree"))
+
+displacement_some_agree = round(100 * mean(displacement_answers == "Somewhat agree"))
+
+displacement_strong_disagree = round(100 * mean(displacement_answers == "Strongly disagree"))
+
+displacement_some_disagree = round(100 * mean(displacement_answers == "Somewhat disagree"))
+
+displacement_undecided = round(100 * mean(displacement_answers == "Neither agree nor disagree"))
+
+displacement_by_discipline = data_filtered |>
+  filter(!is.na(displacement), nzchar(trimws(displacement)),
+         !is.na(discipline_of_interest), nzchar(trimws(discipline_of_interest))) |>
+  group_by(discipline_of_interest) |>
+  summarise(
+    strong_agree_percent = 100 * mean(displacement == "Strongly agree"),
+    some_agree_percent = 100 * mean(displacement == "Somewhat agree"),
+    strong_disagree_percent = 100 * mean(displacement == "Strongly disagree"),
+    some_disagree_percent = 100 * mean(displacement == "Somewhat disagree")
+  )
+
+displacement_strong_agree_by_discipline_high = displacement_by_discipline |>
+  arrange(desc(strong_agree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+displacement_some_agree_by_discipline_high = displacement_by_discipline |>
+  arrange(desc(some_agree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+displacement_strong_disagree_by_discipline_high = displacement_by_discipline |>
+  arrange(desc(strong_disagree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+displacement_some_disagree_by_discipline_high = displacement_by_discipline |>
+  arrange(desc(some_disagree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+displacement_strong_agree_by_discipline_low = displacement_by_discipline |>
+  arrange(strong_agree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+displacement_some_agree_by_discipline_low = displacement_by_discipline |>
+  arrange(some_agree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+displacement_strong_disagree_by_discipline_low = displacement_by_discipline |>
+  arrange(strong_disagree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+displacement_some_disagree_by_discipline_low = displacement_by_discipline |>
+  arrange(some_disagree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+displacement_strong_agree_percent_high = round(max(displacement_by_discipline$strong_agree_percent))
+displacement_strong_agree_percent_low = round(min(displacement_by_discipline$strong_agree_percent))
+displacement_strong_agree_difference = round(max(displacement_by_discipline$strong_agree_percent) - min(displacement_by_discipline$strong_agree_percent))
+displacement_some_disagree_percent_high = round(max(displacement_by_discipline$some_disagree_percent))
+displacement_strong_disagree_percent_high = round(max(displacement_by_discipline$strong_disagree_percent))
+
+```
+
+## Displacement text
+
+Slightly more than half of the respondents (`r response_percent(displacement_answers, disagree)`%; Figure 2) reject the idea that advances in AI will significantly reduce the demand for human researchers in their field within the next three years (`r displacement_some_disagree`% somewhat disagree, `r displacement_strong_disagree`% strongly disagree). `r response_percent(displacement_answers, agree)`% agree with the statement (`r displacement_some_agree`% somewhat agree, `r displacement_strong_agree`% strongly agree), and `r displacement_undecided`% are undecided. Researchers in Humanities and the arts, Agricultural and veterinary sciences, Biological sciences, and Chemical sciences are the most sceptical (`r min(vapply(c("Humanities and the arts", "Agricultural and veterinary sciences", "Biological sciences", "Chemical sciences"), function(d) discipline_percent("displacement", d, disagree), numeric(1)))`–`r max(vapply(c("Humanities and the arts", "Agricultural and veterinary sciences", "Biological sciences", "Chemical sciences"), function(d) discipline_percent("displacement", d, disagree), numeric(1)))`% disagree). Those in Mathematics and statistics and in Computer and information sciences are the most likely to expect such a decline (`r discipline_percent("displacement", "Mathematics and statistics", agree)`% and `r discipline_percent("displacement", "Computer and information sciences", agree)`% agree, respectively). Notably, the share of undecided respondents is highest in Mathematics and statistics (`r discipline_percent("displacement", "Mathematics and statistics", "Neither agree nor disagree")`%). 
+
+# Threat
+
+## Calculate threat results
+
+```{r threat-results}
+threat_answers = data_filtered$threat
+threat_answers = threat_answers[!is.na(threat_answers) & nzchar(trimws(threat_answers))]
+
+threat_strong_agree = round(100 * mean(threat_answers == "Strongly agree"))
+
+threat_some_agree = round(100 * mean(threat_answers == "Somewhat agree"))
+
+threat_strong_disagree = round(100 * mean(threat_answers == "Strongly disagree"))
+
+threat_some_disagree = round(100 * mean(threat_answers == "Somewhat disagree"))
+
+threat_undecided = round(100 * mean(threat_answers == "Neither agree nor disagree"))
+
+threat_by_discipline = data_filtered |>
+  filter(!is.na(threat), nzchar(trimws(threat)),
+         !is.na(discipline_of_interest), nzchar(trimws(discipline_of_interest))) |>
+  group_by(discipline_of_interest) |>
+  summarise(
+    strong_agree_percent = 100 * mean(threat == "Strongly agree"),
+    some_agree_percent = 100 * mean(threat == "Somewhat agree"),
+    strong_disagree_percent = 100 * mean(threat == "Strongly disagree"),
+    some_disagree_percent = 100 * mean(threat == "Somewhat disagree")
+  )
+
+threat_strong_agree_by_discipline_high = threat_by_discipline |>
+  arrange(desc(strong_agree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+threat_some_agree_by_discipline_high = threat_by_discipline |>
+  arrange(desc(some_agree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+threat_strong_disagree_by_discipline_high = threat_by_discipline |>
+  arrange(desc(strong_disagree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+threat_some_disagree_by_discipline_high = threat_by_discipline |>
+  arrange(desc(some_disagree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+threat_strong_agree_by_discipline_low = threat_by_discipline |>
+  arrange(strong_agree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+threat_some_agree_by_discipline_low = threat_by_discipline |>
+  arrange(some_agree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+threat_strong_disagree_by_discipline_low = threat_by_discipline |>
+  arrange(strong_disagree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+threat_some_disagree_by_discipline_low = threat_by_discipline |>
+  arrange(some_disagree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+threat_strong_agree_percent_high = round(max(threat_by_discipline$strong_agree_percent))
+threat_strong_agree_percent_low = round(min(threat_by_discipline$strong_agree_percent))
+threat_strong_agree_difference = round(max(threat_by_discipline$strong_agree_percent) - min(threat_by_discipline$strong_agree_percent))
+threat_some_disagree_percent_high = round(max(threat_by_discipline$some_disagree_percent))
+threat_strong_disagree_percent_high = round(max(threat_by_discipline$strong_disagree_percent))
+
+```
+
+## Threat text
+
+About a third (`r response_percent(threat_answers, agree)`%; Figure 3) of respondents feel that advances in AI threaten the continued existence and long-term viability of academic research as a human profession (`r threat_some_agree`% somewhat agree, `r threat_strong_agree`% strongly agree). `r response_percent(threat_answers, disagree)`% disagree with the statement (`r threat_some_disagree`% somewhat disagree, `r threat_strong_disagree`% strongly disagree), and `r threat_undecided`% remain undecided. Respondents in Chemical sciences and Biological sciences were the least likely to agree (`r discipline_percent("threat", "Chemical sciences", agree)`% and `r discipline_percent("threat", "Biological sciences", agree)`%, respectively). Strong agreement is most common in Mathematics and statistics (`r discipline_percent("threat", "Mathematics and statistics", "Strongly agree")`%) and least common in Agricultural and veterinary sciences (`r discipline_percent("threat", "Agricultural and veterinary sciences", "Strongly agree")`%). 
+
+# Concern
+
+## Calculate concern results
+
+```{r concern-results}
+concern_answers = data_filtered$concern
+concern_answers = concern_answers[!is.na(concern_answers) & nzchar(trimws(concern_answers))]
+
+concern_strong_agree = round(100 * mean(concern_answers == "Strongly agree"))
+
+concern_some_agree = round(100 * mean(concern_answers == "Somewhat agree"))
+
+concern_strong_disagree = round(100 * mean(concern_answers == "Strongly disagree"))
+
+concern_some_disagree = round(100 * mean(concern_answers == "Somewhat disagree"))
+
+concern_undecided = round(100 * mean(concern_answers == "Neither agree nor disagree"))
+
+concern_by_discipline = data_filtered |>
+  filter(!is.na(concern), nzchar(trimws(concern)),
+         !is.na(discipline_of_interest), nzchar(trimws(discipline_of_interest))) |>
+  group_by(discipline_of_interest) |>
+  summarise(
+    strong_agree_percent = 100 * mean(concern == "Strongly agree"),
+    some_agree_percent = 100 * mean(concern == "Somewhat agree"),
+    strong_disagree_percent = 100 * mean(concern == "Strongly disagree"),
+    some_disagree_percent = 100 * mean(concern == "Somewhat disagree")
+  )
+
+concern_strong_agree_by_discipline_high = concern_by_discipline |>
+  arrange(desc(strong_agree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+concern_some_agree_by_discipline_high = concern_by_discipline |>
+  arrange(desc(some_agree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+concern_strong_disagree_by_discipline_high = concern_by_discipline |>
+  arrange(desc(strong_disagree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+concern_some_disagree_by_discipline_high = concern_by_discipline |>
+  arrange(desc(some_disagree_percent)) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+concern_strong_agree_by_discipline_low = concern_by_discipline |>
+  arrange(strong_agree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+concern_some_agree_by_discipline_low = concern_by_discipline |>
+  arrange(some_agree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+concern_strong_disagree_by_discipline_low = concern_by_discipline |>
+  arrange(strong_disagree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+concern_some_disagree_by_discipline_low = concern_by_discipline |>
+  arrange(some_disagree_percent) |>
+  slice(1) |>
+  pull(discipline_of_interest)
+
+concern_strong_agree_percent_high = round(max(concern_by_discipline$strong_agree_percent))
+concern_strong_agree_percent_low = round(min(concern_by_discipline$strong_agree_percent))
+concern_strong_agree_difference = round(max(concern_by_discipline$strong_agree_percent) - min(concern_by_discipline$strong_agree_percent))
+concern_some_disagree_percent_high = round(max(concern_by_discipline$some_disagree_percent))
+concern_strong_disagree_percent_high = round(max(concern_by_discipline$strong_disagree_percent))
+
+```
+
+## Concern text
+
+When asked about their own job security, `r response_percent(concern_answers, agree)`% of respondents reported being concerned about the implications of AI-driven scientific research (`r concern_some_agree`% somewhat agree, `r concern_strong_agree`% strongly agree). `r response_percent(concern_answers, disagree)`% do not share this concern (`r concern_some_disagree`% somewhat disagree, `r concern_strong_disagree`% strongly disagree), and `r concern_undecided`% are undecided. Agreement is most common in Computer and information sciences (`r discipline_percent("concern", "Computer and information sciences", agree)`%) and least common in Chemical sciences (`r discipline_percent("concern", "Chemical sciences", agree)`%). Researchers in Medical, health and life sciences and in Humanities and the arts most often disagree with the statement (`r discipline_percent("concern", "Medical, health and life sciences", disagree)`% and `r discipline_percent("concern", "Humanities and the arts", disagree)`%, respectively; Figure 4). 
+
+# Change
+
+## Calculate change results
+
+```{r change-results}
+change_respondents = data_filtered |>
+  select(respondent, stage, change) |>
+  filter(!is.na(change), nzchar(trimws(change)))
+training_option = "I am considering training fewer researchers."
+
+change_long = change_respondents |>
+  select(respondent, change) |>
+  separate_longer_delim(change, delim = ",") |>
+  mutate(change = trimws(change)) |>
+  filter(nzchar(change)) |>
+  distinct(respondent, change)
+stopifnot(all(change_long$change %in% response_orders$change))
+
+# Exclude PhD students from both numerator and denominator for training only.
+change_eligible = tidyr::expand_grid(
+  respondent = change_respondents$respondent,
+  response = response_orders$change
+) |>
+  left_join(select(change_respondents, respondent, stage), by = "respondent") |>
+  filter(!(response == training_option & coalesce(stage == "PhD student", FALSE))) |>
+  left_join(change_long |> transmute(respondent, response = change, chosen = TRUE),
+            by = c("respondent", "response"))
+
+change_counts = change_eligible |>
+  group_by(response) |>
+  summarise(n = sum(chosen %in% TRUE), denominator = n(), .groups = "drop")
+stopifnot(all(change_counts$n <= change_counts$denominator))
+change_percent = setNames(round(100 * change_counts$n / change_counts$denominator), change_counts$response)
+```
+
+## Change text
+
+As considerations about scientific progress, autonomy, responsibility, career viability, and job security point to a direction in which science cannot be thought of as a field outside the realms of AI, we asked respondents whether they consider changing their research plans, academic career, or other aspects of their work. After filtering out implausible combinations (i.e., choosing two or more options that are logically incompatible), the greatest change researchers report is increasing their adoption of AI, with `r change_percent["I am increasing AI adoption in my research."]`% saying they are doing so. `r change_percent["I do not intend to reconsider my research or career."]`% do not intend to make changes regarding their research or career, while `r change_percent["I am reconsidering research topics."]`% do so for their research topics and `r change_percent["I am reconsidering my academic career."]`% for their academic career. Training fewer researchers for the future, however, has been considered only by `r change_percent["I am considering training fewer researchers."]`% of researchers. 
+
+# Discussion
+
+In this study, we aimed to survey the global research community’s views on the future of human research in general and in their own field. We were especially interested in conducting this survey shortly following OpenAI’s bulk release of mathematical papers. Our results showed that over `r response_percent(data_filtered$awareness, response_orders$awareness[2:4])`% of respondents were at least somewhat aware of this event. Although we cannot tell to what degree this major scientific announcement drove their reactions, the news seems to have spread beyond the circles of mathematicians. 
+
+To start, more than `r response_percent(data_filtered$ai_use, response_orders$ai_use[3:6])`% of our respondents use AI tools regularly or semi-regularly for their research. This is the highest proportion measured so far in a global survey, in line with the everyday impression of accelerated adoption of this technology. Interestingly, one in ten researchers in the survey reported using AI for nearly all of their research work. Again, we must emphasise that our results are subject to recruitment and selection bias, therefore, they can only hint at general trends.
+
+## Expected capabilities of AI systems 
+Most researchers (`r response_percent(data_filtered$capability, response_orders$capability[3:5])`%) assumed that within three years, AI systems will be able to perform research tasks independently, but they differ in the expected quality of that work. Across disciplines, most who think AI systems will be able to perform research tasks independently predict that the quality will be comparable to that of competent human researchers. Across disciplines, researchers in the Natural Sciences, in general, are more convinced that AI systems can achieve comparable or higher quality in their fields. Within Natural Sciences, the field of Mathematics and Statistics stands out, with `r discipline_percent("capability", "Mathematics and statistics", response_orders$capability[5])`% of respondents believing that the output of AI systems will surpass that of human researchers. AI systems seem least useful in the humanities and arts. Across disciplines, researchers who were at least somewhat familiar with OpenAI’s 2026 bulk release of mathematical papers were twice as likely as those unfamiliar with it to believe that AI can produce higher-quality scientific work than humans. These results, of course, do not indicate that familiarity with the news caused this impression. Maybe those interested in the news about AI advancement already had higher confidence in AI's capabilities.
+
+## Will science need human researchers?
+In general, about half of all respondents are more or less against the thought that AI will significantly reduce the demand for human researchers in their field in the next three years. Across disciplines, `r discipline_percent("displacement", "Mathematics and statistics", agree)`% of mathematicians and statisticians were more or less convinced that fewer of them will be needed, while this view was the least believed among researchers in the humanities and arts. These attitudes are reflected in the responses to our question whether AI threatens the continued existence and long-term viability of academic research as a human profession. In almost every field, this notion was supported by at least one third of the respondents, but it was most believed in mathematics and information sciences. 
+
+## Are researchers personally concerned?
+Overall, around one third of all respondents are concerned about their own job security as a result of AI-driven scientific research. In our sample, Mathematicians and computer scientists were the most concerned (>`r min(vapply(c("Mathematics and statistics", "Computer and information sciences"), function(d) discipline_percent("concern", d, agree), numeric(1)))`%), while researchers in Humanities and Biological sciences were the least concerned (<`r max(vapply(c("Humanities and the arts", "Biological sciences"), function(d) discipline_percent("concern", d, agree), numeric(1)))`%). We asked respondents whether recent advances in AI-driven scientific research caused them to reconsider their research and academic careers. Close to `r change_percent["I am increasing AI adoption in my research."]`% reported increasing their adoption of AI in their research. They seem more likely to reconsider their research topics (`r change_percent["I am reconsidering research topics."]`%) than their whole career (`r change_percent["I am reconsidering my academic career."]`%), but about one in ten researchers plan to dedicate less of their life to science in response to advances in AI. Looking at the data from a geographic angle, it is apparent that among the greatest producers of scientific output, respondents in China were most concerned that AI-driven research has implications for their job security. 
+
+## Will AI increase scientific progress?
+Despite the expected negative impact on their own careers, respondents overwhelmingly (`r response_percent(opportunity_answers, agree)`%) believe that AI-driven research will increase the overall rate of scientific progress. Researchers in the humanities and arts were the least convinced, but even there, only `r discipline_percent("opportunity", "Humanities and the arts", disagree)`% disagreed. 
+
+## AI autonomy in research
+What level of autonomy is acceptable in research? According to our respondents, AI should be allowed to play almost all roles in research. Not surprisingly, being used as a research assistant is supported by more than `r role_percent("role_ra", c("Permitted with human supervision", "Permitted autonomously"))`% of our sample. AI serving as an independent researcher, manuscript reviewer, journal editor, or grant reviewer is supported by at least `r min(vapply(c("role_ir", "role_pr", "role_je", "role_gr"), function(role) role_percent(role, c("Permitted with human supervision", "Permitted autonomously")), numeric(1)))`% of respondents. Only research funding decision-makers fell somewhat below majority support. Importantly, they can imagine these roles only with human supervision. Only a smaller fraction of the responses supported fully autonomous AI contributions. It is somewhat surprising that more than `r min(vapply(c("role_pr", "role_je"), function(role) role_percent(role, c("Permitted with human supervision", "Permitted autonomously")), numeric(1)))`% of respondents support AI taking part in the peer review process, both on the side of reviewers and editors.
+
