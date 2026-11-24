@@ -75,7 +75,12 @@ show_survey_plot(ai_roles_plot, "ai-roles")
 change_plot = category_plot(
   change_counts, question_title("change"),
 
-  response_order = response_orders$change, participants = nrow(change_respondents)
+  response_order = response_orders$change, participants = nrow(change_respondents),
+  note = paste(
+    "Multiple selections allowed; percentages can sum to more than 100%.",
+    "Training fewer researchers excludes PhD students.",
+    "Responses with conflicting selections are excluded from this question."
+  )
 )
 show_survey_plot(change_plot, name = "ai-change-bars")
 ```

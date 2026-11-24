@@ -52,6 +52,8 @@ data_filter_non_academic = data_filter_duration |>
 
 data_filter_non_academic_n = nrow(data_filter_duration) - nrow(data_filter_non_academic)
 
+data_filter_no_ai 
+
 data_filtered = data_filter_non_academic
 
 data_filtered = data_filtered |> mutate(respondent = row_number())

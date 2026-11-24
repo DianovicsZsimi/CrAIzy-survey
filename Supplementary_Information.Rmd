@@ -1,7 +1,9 @@
 ---
 title: "Supplementary Information: Who Will Conduct Science? 
 Researchers’ Expectations of AI Capabilities and the Future of Scientific Work"
+subtitle: "PREPRINT"
 author: "Balazs Aczel, Dominik Dianovics, Peter Szecsi, Barnabas Szaszi"
+date: "24 November 2026"
 output:
   html_document:
     toc: true
@@ -76,6 +78,19 @@ h1.title {
   font-weight: 700;
 }
 
+h3.subtitle {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+h4.date {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 16px;
+  font-weight: 400;
+}
+
 h4.author {
   font-family: "Times New Roman", Times, serif;
   font-size: 18px;
@@ -99,7 +114,7 @@ table caption { text-align: right; font-style: italic; color: black; }
 </style>
 ```
 
-This document includes the saved tables and all  plots.
+This document includes the saved tables and all figures.
 Figures and tables are included from their saved files.
 
 # Invitation email
@@ -178,16 +193,16 @@ ${l://OptOutLink?d=Click here to unsubscribe}
 <!-- *Note.* Percentages use valid answers to each question and exclude missing answers. -->
 
 
-## Country classifications
+<!-- ## Country classifications -->
 
-```{r supplementary-table-1}
-knitr::kable(
-  read.csv("tables/country_check.csv", check.names = FALSE, fileEncoding = "UTF-8", row.names = 1),
-  caption = "Table S1. Country classifications"
-)
-```
+<!-- ```{r supplementary-table-1} -->
+<!-- knitr::kable( -->
+<!--   read.csv("tables/country_check.csv", check.names = FALSE, fileEncoding = "UTF-8", row.names = 1), -->
+<!--   caption = "Table S1. Country classifications" -->
+<!-- ) -->
+<!-- ``` -->
 
-*Note.* Country labels, ISO3 codes, and continent assignments used in the analysis.
+<!-- *Note.* Country labels, ISO3 codes, and continent assignments used in the analysis. -->
 
 ## Variables
 
@@ -201,7 +216,7 @@ knitr::kable(
 *Note.* Variables related to AI can be found in the manuscript.
 
 
-# Plots
+# Figures
 
 
 <!-- ## Participant characteristics -->
@@ -476,9 +491,9 @@ knitr::include_graphics("plots_png/academic/grouped_stage_opportunity_academic.p
 ```
 
 
-```{r supplementary-figure-41, fig.cap="S33"}
-knitr::include_graphics("plots_png/academic/grouped_stage_concern_academic.png")
-```
+<!-- ```{r supplementary-figure-41, fig.cap="S33"} -->
+<!-- knitr::include_graphics("plots_png/academic/grouped_stage_concern_academic.png") -->
+<!-- ``` -->
 
 
 ## AI questions by country group
@@ -517,9 +532,9 @@ knitr::include_graphics("plots_png/academic/grouped_country_group_concern_academ
 ## AI questions by familiarity
 
 
-```{r supplementary-figure-48, fig.cap="S40"}
-knitr::include_graphics("plots_png/academic/grouped_awareness_dichotomized_capability_academic.png")
-```
+<!-- ```{r supplementary-figure-48, fig.cap="S40"} -->
+<!-- knitr::include_graphics("plots_png/academic/grouped_awareness_dichotomized_capability_academic.png") -->
+<!-- ``` -->
 
 
 ```{r supplementary-figure-49, fig.cap="S41"}

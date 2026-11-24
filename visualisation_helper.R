@@ -366,6 +366,10 @@ participant_subtitle = function(n) {
   paste0("<i>N</i> = ", format(n, big.mark = ",", scientific = FALSE, trim = TRUE))
 }
 
+plot_note = function(text) {
+  paste0("<i>Note.</i> ", gsub("\n", " ", text, fixed = TRUE))
+}
+
 
 response_palette = function(answers) {
   positions = if (length(answers) == 4) c(1, 2, 4, 5) else seq_along(answers)
@@ -417,6 +421,9 @@ theme_academic = function(base_size = 10, base_family = "Times New Roman",
                                 face = "italic", hjust = 0, margin = margin(b = 12)),
       plot.subtitle = ggtext::element_markdown(family = base_family, size = base_size,
                                                color = "black", margin = margin(b = 8)),
+      plot.caption = ggtext::element_markdown(family = base_family, size = 9,
+                                              hjust = 0, lineheight = 1.15,
+                                              margin = margin(t = 12)),
       legend.position = "top",
       legend.location = "plot",
       legend.justification = "center",
@@ -437,7 +444,8 @@ theme_academic = function(base_size = 10, base_family = "Times New Roman",
 
 category_plot = function(counts, title,
                          wrap_width = 32,
-                         response_order = NULL, denominator = NULL, participants = NULL) {
+                         response_order = NULL, denominator = NULL, participants = NULL,
+                         note = "Percentages exclude missing answers. Percentages may not total 100 because of rounding.") {
   counts = counts |>
     mutate(response = as.character(response)) |>
     filter(!is.na(response), nzchar(trimws(response)))
@@ -477,7 +485,7 @@ category_plot = function(counts, title,
     labs(title = stringr::str_wrap(title, width = 62),
          subtitle = participant_subtitle(participants),
          x = "Share of respondents",
-         y = NULL) +
+         y = NULL, caption = plot_note(note)) +
     theme_academic()
   attr(p, "figure_height") = max(4, height) + 0.4 + title_height(stringr::str_wrap(title, 62))
   p
@@ -517,7 +525,7 @@ grouped_ai_plot = function(data, question, group, group_order,
                 somewhat_agree_share = mean(response == "Somewhat agree"), .groups = "drop") |>
       mutate(tie_order = match(group, groups)) |>
       arrange(desc(strong_agree_share),
-              if (is.null(hierarchy_parent)) desc(somewhat_agree_share) else tie_order,
+              desc(somewhat_agree_share),
               tie_order)
     groups = ranking$group
   } else if (!fixed_order && !is.null(rank_responses)) {
@@ -568,6 +576,31 @@ grouped_ai_plot = function(data, question, group, group_order,
     axis_labels[child_rows] = paste0("        ", gsub("\n", "\n        ", axis_labels[child_rows], fixed = TRUE))
   }
   title = question_title(question, width = 90)
+  note_parts = c(
+    "Percentage labels are shown only for segments representing ≥5% of responses.",
+    "The “All respondents” category includes all valid responses from the full sample."
+  )
+  if (!is.null(hierarchy_parent)) {
+    note_parts = c(
+      note_parts,
+      "Below 100 valid responses, disciplines are not displayed.",
+      "“Natural sciences” includes all valid responses from that field, including those from non-displayed disciplines.",
+      if (is_agreement) {
+        "Fields are ranked by the proportion of “Strongly agree” responses, “Somewhat agree” in case of a tie."
+      } else if (!is.null(rank_responses)) {
+        paste0("Fields are ranked by the proportion of “", rank_responses[1], "” responses.")
+      },
+      "Indented natural science disciplines, shown in a lighter colour scheme, are ranked separately within the Natural sciences category."
+    )
+  } else if (!fixed_order && !is.null(rank_responses)) {
+    note_parts = c(
+      note_parts,
+      paste0("Groups are ranked by the proportion of responses in: ",
+             paste0("“", rank_responses, "”", collapse = ", "), ".")
+    )
+  }
+  note = plot_note(paste(c(note_parts,
+    "Percentages may not sum to 100% due to rounding."), collapse = " "))
   p = ggplot(segments) +
     geom_rect(key_glyph = draw_key_square, aes(xmin = xmin, xmax = xmax, ymin = y - 0.36,
                   ymax = y + 0.36, fill = response, alpha = bar_alpha), color = "white", linewidth = 0.3) +
@@ -586,7 +619,7 @@ grouped_ai_plot = function(data, question, group, group_order,
     coord_cartesian(clip = "off") +
     labs(title = title, subtitle = participant_subtitle(length(all_responses)),
          x = "Share of respondents within each group",
-         y = NULL, fill = NULL) +
+         y = NULL, fill = NULL, caption = note) +
     theme_academic() +
     guides(fill = guide_legend(nrow = 1, byrow = TRUE)) +
     theme(axis.text.x = element_text(margin = margin(t = 8), lineheight = 1.1),
@@ -601,9 +634,98 @@ grouped_ai_plot = function(data, question, group, group_order,
   # Equal row spacing must accommodate the longest wrapped group label.
   row_height = max(0.85, max(stringr::str_count(axis_labels, "\n") + 1) * 0.20 + 0.22)
   # Reserve title/legend space separately so even two-group charts have thick bars.
-  attr(p, "figure_height") = max(6, 3.9 + (length(groups) + 0.5) * row_height + title_height(title) + if (is_agreement) 0.6 else 0)
+  caption_lines = ceiling(nchar(gsub("<[^>]+>", "", note)) / 135)
+  attr(p, "figure_height") = max(6, 3.9 + (length(groups) + 0.5) * row_height +
+                                   title_height(title) + (if (is_agreement) 0.6 else 0) +
+                                   0.22 * caption_lines)
   attr(p, "figure_width") = 12
   attr(p, "figure_label") = paste("grouped", group, question, sep = "-")
+  p
+}
+
+
+# Two-panel comparison of expected AI independence by familiarity in natural
+# and social sciences.
+make_independence_by_familiarity_plot = function(data) {
+  panels = c("Natural sciences", "Social sciences")
+  familiarity = c("Not familiar", "Familiar")
+  answers = response_orders$capability
+
+  plot_data = data |>
+    transmute(panel = as.character(discipline_1),
+              group = as.character(awareness_dichotomized),
+              response = as.character(capability)) |>
+    filter(panel %in% panels, group %in% familiarity,
+           !is.na(response), nzchar(trimws(response)))
+  if (nrow(plot_data) == 0) return(NULL)
+
+  panel_counts = plot_data |>
+    count(panel, name = "panel_n")
+  panel_labels = setNames(
+    paste0(panel_counts$panel, "\n(<i>N</i> = ",
+           format(panel_counts$panel_n, big.mark = ",", scientific = FALSE), ")"),
+    panel_counts$panel
+  )
+
+  segments = plot_data |>
+    count(panel, group, response) |>
+    complete(panel = panels, group = familiarity, response = answers,
+             fill = list(n = 0)) |>
+    group_by(panel, group) |>
+    mutate(total = sum(n), proportion = if_else(total > 0, n / total, 0),
+           xmax = cumsum(proportion), xmin = xmax - proportion) |>
+    ungroup() |>
+    filter(total > 0) |>
+    mutate(panel = factor(panel, levels = panels),
+           response = factor(response, levels = answers),
+           group = factor(group, levels = rev(familiarity)),
+           label = stacked_percent_label(proportion))
+
+  palette = response_palette(answers)
+  rgb = grDevices::col2rgb(palette[as.integer(segments$response)]) / 255
+  linear_rgb = ifelse(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055)^2.4)
+  luminance = colSums(linear_rgb * c(0.2126, 0.7152, 0.0722))
+  segments$text_color = ifelse(
+    (1.05 / (luminance + 0.05)) > ((luminance + 0.05) / 0.05), "white", "black")
+
+  p = ggplot(segments) +
+    geom_rect(aes(xmin = xmin, xmax = xmax,
+                  ymin = as.numeric(group) - 0.34, ymax = as.numeric(group) + 0.34,
+                  fill = response), color = "white", linewidth = 0.3) +
+    geom_text(aes(x = (xmin + xmax) / 2, y = as.numeric(group),
+                  label = label, color = text_color), show.legend = FALSE) +
+    facet_grid(. ~ panel, labeller = as_labeller(panel_labels)) +
+    scale_color_identity() +
+    scale_fill_manual(values = setNames(palette, answers), breaks = answers,
+                      labels = legend_response_labels("capability", answers), drop = FALSE) +
+    scale_y_continuous(breaks = seq_along(familiarity), labels = rev(familiarity),
+                       limits = c(0.5, length(familiarity) + 0.5),
+                       expand = expansion(mult = 0)) +
+    scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25),
+                       labels = scales::label_percent(accuracy = 1),
+                       expand = expansion(mult = c(0, 0))) +
+    coord_cartesian(clip = "off") +
+    labs(
+      title = "Expected AI research independence by familiarity",
+      x = "Share of respondents within each familiarity group",
+      y = NULL, fill = NULL,
+      caption = plot_note(paste(
+        "Percentage labels are shown only for segments representing ≥5% of responses.",
+        "Familiar includes Somewhat familiar and Very familiar; Not familiar includes Not aware and Heard about them, but know little.",
+        "Missing familiarity or capability responses are excluded.",
+        "Percentages may not sum to 100% due to rounding."
+      ))
+    ) +
+    theme_academic() +
+    guides(fill = guide_legend(nrow = 1, byrow = TRUE)) +
+    theme(panel.spacing.x = grid::unit(24, "pt"),
+          strip.text = ggtext::element_markdown(size = 10, face = "bold", lineheight = 1.1),
+          axis.text.x = element_text(margin = margin(t = 8)),
+          plot.margin = margin(16, 40, 16, 16))
+
+  attr(p, "figure_width") = 12
+  attr(p, "figure_height") = 5.2
+  attr(p, "figure_label") = "independence-by-familiarity-discipline"
   p
 }
 
@@ -695,7 +817,9 @@ show_survey_plot = function(p, name = NULL, kind = "standard") {
   }
   width = academic_page_width
   title_lines = stringr::str_count(title, "\n") + 1
-  overhead = 0.9 + 0.18 * title_lines + 0.38 * legend_rows
+  caption_text = if (is.null(p$labels$caption)) "" else gsub("<[^>]+>", "", p$labels$caption)
+  caption_lines = if (nzchar(caption_text)) ceiling(nchar(caption_text) / 95) else 0
+  overhead = 0.9 + 0.18 * title_lines + 0.38 * legend_rows + 0.20 * caption_lines
   lines_per_row = stringr::str_count(row_labels, "\n") + 1
   height = if (kind == "map") 4.8 else
     if (kind == "country-count") overhead + 0.18 * ceiling(nrow(p$data) / 3) else
@@ -704,7 +828,7 @@ show_survey_plot = function(p, name = NULL, kind = "standard") {
     if ("role" %in% names(p$data)) overhead +
       n_distinct(p$data$role) * max(0.40, 0.145 * max(lines_per_row) + 0.08) else
       overhead + length(row_labels) * max(0.40, 0.145 * max(lines_per_row) + 0.08)
-  height = min(9.2, max(3, height))
+  height = min(11.5, max(3, height))
   attr(p, "figure_width") = width
   attr(p, "figure_height") = height
   render_survey_plot(p, name = paste0(name, "-academic"))
@@ -743,7 +867,13 @@ make_ai_roles_plot = function(role_counts, role_response_order, ai_roles, data_f
          subtitle = participant_subtitle(nrow(data_filtered |>
            filter(if_any(all_of(names(ai_roles)), ~ !is.na(.x) & nzchar(trimws(.x)))))),
   
-         x = "Share of respondents within each role", y = NULL, fill = NULL) +
+         x = "Share of respondents within each role", y = NULL, fill = NULL,
+         caption = plot_note(paste(
+           "Percentages exclude missing responses separately for each role.",
+           "All roles pools valid role answers; each participant can contribute one answer per role.",
+           "Labels shown for segments with percentages ≥ 5%.",
+           "Percentages may not total 100 because of rounding."
+         ))) +
     theme_academic() +
     guides(fill = guide_legend(nrow = 1)) +
     theme(plot.subtitle = ggtext::element_markdown(margin = margin(b = 6)))
@@ -761,7 +891,10 @@ make_country_count_plot = function(country_bars, country_counts) {
                        expand = expansion(mult = c(0, 0.2))) +
     labs(title = "Number of respondents per country",
          subtitle = participant_subtitle(sum(country_counts$n)), x = "Number of respondents",
-         y = NULL) +
+         y = NULL,
+         caption = plot_note(paste0(
+           "ISO3 country codes; respondents with missing country codes excluded. Countries represented: ",
+           nrow(country_counts), "."))) +
     theme_academic() +
     theme(strip.text = element_blank(), panel.spacing.x = grid::unit(25, "pt"))
   attr(country_count_plot, "figure_height") = 2 + ceiling(nrow(country_bars) / 3) * 0.32
@@ -788,7 +921,10 @@ make_world_map = function(world_data, country_counts) {
     coord_sf(expand = FALSE) +
     labs(
       title = "Geographical distribution of respondents",
-      subtitle = participant_subtitle(sum(country_counts$n))
+      subtitle = participant_subtitle(sum(country_counts$n)),
+      caption = plot_note(paste0(
+        "Percentage of respondents with an identified country. Countries represented: ",
+        dplyr::n_distinct(world_data$adm0_a3[!is.na(world_data$n)]), "."))
     ) +
     theme_academic() +
     theme(
