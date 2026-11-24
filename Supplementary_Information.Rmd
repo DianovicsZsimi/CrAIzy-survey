@@ -1,7 +1,8 @@
 ---
-title: "Supplementary Information: Who Will Conduct Science? 
-Researchers’ Expectations of AI Capabilities and the Future of Scientific Work"
-subtitle: "PREPRINT"
+title: "Supplementary Information"
+subtitle: |
+  Who Will Conduct Science? Researchers’ Expectations of AI 
+  Capabilities and the Future of Scientific Work (Preprint)
 author: "Balazs Aczel, Dominik Dianovics, Peter Szecsi, Barnabas Szaszi"
 date: "24 November 2026"
 output:
@@ -76,6 +77,7 @@ h1.title {
   font-family: "Times New Roman", Times, serif;
   font-size: 30px;
   font-weight: 700;
+  text-align: center;
 }
 
 h3.subtitle {
@@ -83,6 +85,7 @@ h3.subtitle {
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.08em;
+  text-align: center;
 }
 
 h4.date {
@@ -337,7 +340,7 @@ knitr::include_graphics("plots_png/academic/world_map_academic.png")
 <!-- ``` -->
 
 
-## Subfields within social sciences
+## Disciplines within social sciences
 
 
 ```{r supplementary-figure-18, fig.cap="S4"}
@@ -370,7 +373,7 @@ knitr::include_graphics("plots_png/academic/grouped_social_sciences_subfields_co
 ```
 
 
-## Subfields within medical, health and life sciences
+## Disciplines within medical, health and life sciences
 
 
 ```{r supplementary-figure-24, fig.cap="S10"}
@@ -403,7 +406,7 @@ knitr::include_graphics("plots_png/academic/grouped_medical_life_sciences_subfie
 ```
 
 
-## Subfields within engineering and technology
+## Disciplines within engineering and technology
 
 
 ```{r supplementary-figure-30, fig.cap="S16"}
@@ -435,7 +438,7 @@ knitr::include_graphics("plots_png/academic/grouped_engineering_subfields_opport
 knitr::include_graphics("plots_png/academic/grouped_engineering_subfields_concern_academic.png")
 ```
 
-## Subfields within humanities and the arts
+## Disciplines within humanities and the arts
 
 ```{r supplementary-figure-56, fig.cap="S22"}
 knitr::include_graphics("plots_png/academic/grouped_humanities_subfields_awareness_academic.png")
